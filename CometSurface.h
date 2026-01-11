@@ -5,10 +5,9 @@
 class CometSurface {
 public:
     static double SolveTemperature(double r_h_AU, double cosTheta) {
-        double S_sun = 1361.0;
-        double r_meters = r_h_AU * 1.496e11;
+        double r_meters = r_h_AU * PhysicsConsts::AU_METERS;
 
-        double E_input = (S_sun / (r_h_AU * r_h_AU)) * (1.0 - 0.04) * std::max(0.0, cosTheta);
+        double E_input = (PhysicsConsts::SolarConst / (r_h_AU * r_h_AU)) * (1.0 - PhysicsConsts::Albedo) * std::max(0.0, cosTheta);
 
         double eta = 0.1;
         double E_avail = E_input * (1.0 - eta);

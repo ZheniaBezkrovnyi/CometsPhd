@@ -125,7 +125,6 @@
   <ItemGroup>
     <ClCompile Include="CometModel.cpp" />
     <ClCompile Include="CometsPhd.cpp" />
-    <ClCompile Include="CometSurface.cpp" />
     <ClCompile Include="Forces.cpp" />
     <ClCompile Include="Geometry.cpp" />
     <ClCompile Include="MeshTriangle.cpp" />
@@ -134,11 +133,12 @@
     <ClCompile Include="PhysicsConsts.cpp" />
     <ClCompile Include="PLY.cpp" />
     <ClCompile Include="plycpp.cpp" />
+    <ClCompile Include="Rotation.cpp" />
+    <ClCompile Include="Sun.cpp" />
     <ClCompile Include="Vector3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CometModel.h" />
-    <ClInclude Include="CometSurface.h" />
     <ClInclude Include="Forces.h" />
     <ClInclude Include="Geometry.h" />
     <ClInclude Include="MeshTriangle.h" />
@@ -147,6 +147,8 @@
     <ClInclude Include="PhysicsConsts.h" />
     <ClInclude Include="PLY.h" />
     <ClInclude Include="plycpp.h" />
+    <ClInclude Include="Rotation.h" />
+    <ClInclude Include="Sun.h" />
     <ClInclude Include="Vector3.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

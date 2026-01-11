@@ -6,7 +6,8 @@ struct Particle {
     Vector3 velocity;
     Vector3 forceAccum; 
     double mass;
+    float radius;
     bool active;
 
-    Particle(Vector3 pos, double m) : position(pos), mass(m), active(true) {}
+    Particle(Vector3 pos, double m, float r) : position(pos), mass(m), radius(r), active(true) {}
 };
