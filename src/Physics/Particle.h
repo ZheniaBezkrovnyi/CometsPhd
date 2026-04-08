@@ -1,13 +1,15 @@
 #pragma once
-#include "Vector3.h"
+#include <glm/glm.hpp>
 
 struct Particle {
-    Vector3 position;
-    Vector3 velocity;
-    Vector3 forceAccum; 
+    glm::dvec3 position;
+    glm::dvec3 velocity;
+    glm::dvec3 forceAccum;
     double mass;
     float radius;
     bool active;
 
-    Particle(Vector3 pos, double m, float r) : position(pos), mass(m), radius(r), active(true) {}
+    Particle(glm::dvec3 pos, double m, float r)
+        : position(pos), velocity(0.0), forceAccum(0.0), mass(m), radius(r), active(true) {
+    }
 };

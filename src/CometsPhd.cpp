@@ -5,6 +5,9 @@
 #include <random>
 #include <iomanip>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "PhysicsConsts.h"
 #include "PLY.h"
 #include "Sun.h"    
@@ -19,15 +22,17 @@ int main() {
     double distanceCometToSun = 1.5 * PhysicsConsts::AU_METERS;
     double t = 0.0;
     double dt = 10.0;
+
     int totalFrames = 100;
 
     double dustRadius = 1e-4;
     double dustDensity = 1000.0;
+
     double dustMass = (4.0 / 3.0) * PhysicsConsts::PI * std::pow(dustRadius, 3) * dustDensity;
 
-    Sun sun(Vector3(distanceCometToSun, 0, 0));
-
+    Sun sun(glm::dvec3(distanceCometToSun, 0.0, 0.0));
     CometModel comet;
+
     try {
         comet.LoadFromPLY("PLY`s/plyexample.ply");
     }
@@ -38,9 +43,9 @@ int main() {
 
     ParticleSystem particleSys;
 
-    particleSys.AddForce(std::make_unique<GravityForce>(Vector3(0, 0, 0), mComet));
+    particleSys.AddForce(std::make_unique<GravityForce>(glm::dvec3(0, 0, 0), mComet));
     particleSys.AddForce(std::make_unique<SolarPressureForce>(sun, 1.0));
-    particleSys.AddForce(std::make_unique<GasDragForce>());
+    // particleSys.AddForce(std::make_unique<GasDragForce>(glm::dvec3(0,0,0), Q_total, V_term));
 
     std::cout << "Particle Mass: " << dustMass << " kg\n";
     std::cout << "Starting Loop...\n\n";
@@ -49,8 +54,10 @@ int main() {
         double rotationSpeed = 2.0 * PhysicsConsts::PI / (12.0 * 3600.0);
         double currentAngle = t * rotationSpeed;
 
-        Rotation currentRot = Rotation::FromEuler(0, currentAngle, 0);
-        comet.SetTransform(Vector3(0, 0, 0), currentRot);
+        glm::dmat4 rot4 = glm::rotate(glm::dmat4(1.0), currentAngle, glm::dvec3(0.0, 1.0, 0.0));
+        glm::dmat3 currentRot = glm::dmat3(rot4);
+
+        comet.SetTransform(glm::dvec3(0, 0, 0), currentRot);
         comet.UpdateSurfacePhysics(sun.position);
 
         int spawnedCount = 0;
@@ -70,12 +77,10 @@ int main() {
                 }
 
                 for (int i = 0; i < numParticles; i++) {
-                    Vector3 spawnPos = tri.GetWorldCenter(comet.currentPosition, comet.currentRotation);
-
+                    glm::dvec3 spawnPos = tri.GetWorldCenter(comet.currentPosition, comet.currentRotation);
                     Particle p(spawnPos, dustMass, dustRadius);
 
-                    p.velocity = tri.GetWorldNormal(comet.currentRotation) * 10; // need gasForce
-
+                    p.velocity = tri.GetWorldNormal(comet.currentRotation) * 10.0;
                     particleSys.AddParticle(p);
                     spawnedCount++;
                 }
@@ -91,11 +96,13 @@ int main() {
             std::cout << "Comet Gas Rate: " << comet.totalGasProductionRate << " kg/s\n";
 
             if (particleSys.GetCount() > 0) {
-                Particle p = particleSys.GetParticle(0);
-                double dist = p.position.magnitude();
-                std::cout << "   [TEST SAMPLE] Dist: " << std::fixed << std::setprecision(2) << dist
-                    << "m | Vel: " << p.velocity.magnitude() << " m/s";
 
+                glm::dvec3 pPos = particleSys.data.positions[0];
+                glm::dvec3 pVel = particleSys.data.velocities[0];
+                double dist = glm::length(pPos);
+
+                std::cout << "   [TEST SAMPLE] Dist: " << std::fixed << std::setprecision(2) << dist
+                    << "m | Vel: " << glm::length(pVel) << " m/s";
                 std::cout << "\n";
             }
         }

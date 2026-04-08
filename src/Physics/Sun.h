@@ -1,27 +1,25 @@
 #pragma once
+#include <glm/glm.hpp>
 #include "PhysicsConsts.h" 
-#include "Vector3.h"
-
 
 class Sun {
 public:
-    Vector3 position;
+    glm::dvec3 position;
     double luminosity;
 
-    Sun(Vector3 startPosition) : position(startPosition) {
+    Sun(glm::dvec3 startPosition) : position(startPosition) {
         luminosity = 1.0;
     }
 
-    Vector3 GetDirectionFrom(const Vector3& point) const {
-        return (position - point).normalized();
+    glm::dvec3 GetDirectionFrom(const glm::dvec3& point) const {
+        return glm::normalize(position - point);
     }
 
-    double GetDistanceFrom(const Vector3& point) const {
-        Vector3 vec = position - point;
-        return vec.magnitude();
+    double GetDistanceFrom(const glm::dvec3& point) const {
+        return glm::length(position - point);
     }
 
-    double GetSolarFlux(const Vector3& point) const {
+    double GetSolarFlux(const glm::dvec3& point) const {
         double dist = GetDistanceFrom(point);
         double r_AU = dist / PhysicsConsts::AU_METERS;
         if (r_AU < 1e-5) return PhysicsConsts::SolarConst;

@@ -1,37 +1,39 @@
 #pragma once
 #include <vector>
 #include <memory>
+#include <glm/glm.hpp>
 #include "Particle.h"
-#include "Forces.h"
+
+class IForceGenerator;
+
+struct ParticleData {
+    std::vector<glm::dvec3> positions;
+    std::vector<glm::dvec3> velocities;
+    std::vector<glm::dvec3> forces;
+    std::vector<double> masses;
+    std::vector<float> radii;
+    std::vector<bool> active;
+
+    size_t count = 0;
+
+    void Add(const Particle& p) {
+        positions.push_back(p.position);
+        velocities.push_back(p.velocity);
+        forces.push_back(p.forceAccum);
+        masses.push_back(p.mass);
+        radii.push_back(p.radius);
+        active.push_back(p.active);
+        count++;
+    }
+};
+
 class ParticleSystem {
-    std::vector<Particle> particles;
+public:
+    ParticleData data;
     std::vector<std::unique_ptr<IForceGenerator>> forces;
 
-public:
-    void AddParticle(const Particle& p) {
-        particles.push_back(p);
-    }
-
-    void AddForce(std::unique_ptr<IForceGenerator> force) {
-        forces.push_back(std::move(force));
-    }
-
-    void Update(double dt) {
-        for (auto& p : particles) {
-            if (!p.active) continue;
-
-            p.forceAccum = Vector3(0, 0, 0);
-
-            for (auto& f : forces) {
-                f->UpdateForce(p, dt);
-            }
-
-            Vector3 acceleration = p.forceAccum * (1.0 / p.mass);
-            p.velocity = p.velocity + (acceleration * dt);
-            p.position = p.position + (p.velocity * dt);
-        }
-    }
-
-    size_t GetCount() const { return particles.size(); }
-    Particle GetParticle(size_t i) const { return particles[i]; }
+    void AddParticle(const Particle& p);
+    void AddForce(std::unique_ptr<IForceGenerator> force);
+    void Update(double dt);
+    size_t GetCount() const;
 };

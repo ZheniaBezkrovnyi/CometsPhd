@@ -18,6 +18,40 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\CometsPhd.cpp" />
+    <ClCompile Include="src\Core\PhysicsConsts.cpp" />
+    <ClCompile Include="src\Core\Rotation.cpp" />
+    <ClCompile Include="src\Core\Vector3.cpp" />
+    <ClCompile Include="src\Geometry\CometModel.cpp" />
+    <ClCompile Include="src\Geometry\CometSurface.cpp" />
+    <ClCompile Include="src\Geometry\Geometry.cpp" />
+    <ClCompile Include="src\Geometry\MeshTriangle.cpp" />
+    <ClCompile Include="src\IO\PLY.cpp" />
+    <ClCompile Include="src\IO\plycpp.cpp" />
+    <ClCompile Include="src\Physics\Forces.cpp" />
+    <ClCompile Include="src\Physics\Particle.cpp" />
+    <ClCompile Include="src\Physics\ParticleSystem.cpp" />
+    <ClCompile Include="src\Physics\Sun.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\Core\PhysicsConsts.h" />
+    <ClInclude Include="src\Core\Rotation.h" />
+    <ClInclude Include="src\Core\Vector3.h" />
+    <ClInclude Include="src\Geometry\CometModel.h" />
+    <ClInclude Include="src\Geometry\CometSurface.h" />
+    <ClInclude Include="src\Geometry\Geometry.h" />
+    <ClInclude Include="src\Geometry\MeshTriangle.h" />
+    <ClInclude Include="src\IO\PLY.h" />
+    <ClInclude Include="src\IO\plycpp.h" />
+    <ClInclude Include="src\Physics\Forces.h" />
+    <ClInclude Include="src\Physics\Particle.h" />
+    <ClInclude Include="src\Physics\ParticleSystem.h" />
+    <ClInclude Include="src\Physics\Sun.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -102,6 +136,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)src;$(ProjectDir)src\Core;$(ProjectDir)src\Geometry;$(ProjectDir)src\Physics;$(ProjectDir)src\IO;</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -122,35 +157,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="CometModel.cpp" />
-    <ClCompile Include="CometsPhd.cpp" />
-    <ClCompile Include="Forces.cpp" />
-    <ClCompile Include="Geometry.cpp" />
-    <ClCompile Include="MeshTriangle.cpp" />
-    <ClCompile Include="Particle.cpp" />
-    <ClCompile Include="ParticleSystem.cpp" />
-    <ClCompile Include="PhysicsConsts.cpp" />
-    <ClCompile Include="PLY.cpp" />
-    <ClCompile Include="plycpp.cpp" />
-    <ClCompile Include="Rotation.cpp" />
-    <ClCompile Include="Sun.cpp" />
-    <ClCompile Include="Vector3.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="CometModel.h" />
-    <ClInclude Include="Forces.h" />
-    <ClInclude Include="Geometry.h" />
-    <ClInclude Include="MeshTriangle.h" />
-    <ClInclude Include="Particle.h" />
-    <ClInclude Include="ParticleSystem.h" />
-    <ClInclude Include="PhysicsConsts.h" />
-    <ClInclude Include="PLY.h" />
-    <ClInclude Include="plycpp.h" />
-    <ClInclude Include="Rotation.h" />
-    <ClInclude Include="Sun.h" />
-    <ClInclude Include="Vector3.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

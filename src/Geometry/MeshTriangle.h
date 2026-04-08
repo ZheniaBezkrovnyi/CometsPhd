@@ -1,10 +1,9 @@
 #pragma once
-#include "Vector3.h"
-#include "Rotation.h"
+#include <glm/glm.hpp>
 
 struct MeshTriangle {
-    Vector3 localCenter;
-    Vector3 localNormal;
+    glm::dvec3 localCenter;
+    glm::dvec3 localNormal;
     double area;
 
     double temperature;
@@ -12,17 +11,17 @@ struct MeshTriangle {
     double localGasVelocity;
     double gasFluxZ;
 
-    MeshTriangle(Vector3 p1, Vector3 p2, Vector3 p3) {
+    MeshTriangle(glm::dvec3 p1, glm::dvec3 p2, glm::dvec3 p3) {
         localCenter = (p1 + p2 + p3) * (1.0 / 3.0);
 
-        Vector3 edge1 = p2 - p1;
-        Vector3 edge2 = p3 - p1;
-        Vector3 crossProd = edge1.cross(edge2);
+        glm::dvec3 edge1 = p2 - p1;
+        glm::dvec3 edge2 = p3 - p1;
+        glm::dvec3 crossProd = glm::cross(edge1, edge2);
 
-        double crossMag = crossProd.magnitude();
+        double crossMag = glm::length(crossProd);
         area = 0.5 * crossMag;
 
-        localNormal = (crossMag > 1e-9) ? crossProd * (1.0 / crossMag) : Vector3(0, 1, 0);
+        localNormal = (crossMag > 1e-9) ? crossProd * (1.0 / crossMag) : glm::dvec3(0, 1, 0);
 
         temperature = 20.0;
         gasProductionQ = 0.0;
@@ -30,11 +29,11 @@ struct MeshTriangle {
         gasFluxZ = 0.0;
     }
 
-    Vector3 GetWorldNormal(const Rotation& rot) const {
-        return rot.Apply(localNormal);
+    glm::dvec3 GetWorldNormal(const glm::dmat3& rot) const {
+        return rot * localNormal;
     }
 
-    Vector3 GetWorldCenter(const Vector3& cometPos, const Rotation& rot) const {
-        return rot.Apply(localCenter) + cometPos;
+    glm::dvec3 GetWorldCenter(const glm::dvec3& cometPos, const glm::dmat3& rot) const {
+        return (rot * localCenter) + cometPos;
     }
 };
