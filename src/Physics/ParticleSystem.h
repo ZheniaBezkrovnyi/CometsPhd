@@ -25,6 +25,15 @@ struct ParticleData {
         active.push_back(p.active);
         count++;
     }
+
+    void Reserve(size_t capacity) {
+        positions.reserve(capacity);
+        velocities.reserve(capacity);
+        forces.reserve(capacity);
+        masses.reserve(capacity);
+        radii.reserve(capacity);
+        active.reserve(capacity);
+    }
 };
 
 class ParticleSystem {

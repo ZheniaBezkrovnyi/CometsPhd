@@ -1,3 +1,5 @@
+#pragma once
+
 namespace PhysicsConsts {
     constexpr double G = 6.674e-11;
     constexpr double Sigma = 5.67e-8;

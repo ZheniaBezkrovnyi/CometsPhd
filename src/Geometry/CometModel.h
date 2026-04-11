@@ -1,4 +1,6 @@
 #pragma once
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <vector>
 #include <cmath>
 #include <iostream>

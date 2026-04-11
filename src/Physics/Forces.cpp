@@ -1,3 +1,5 @@
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include "Forces.h"
 #include <glm/gtx/norm.hpp>
 

@@ -9,7 +9,7 @@ property float nx
 property float ny
 property float nz
 element face 121912
-property list uchar int vertex_index
+property list uchar int vertex_indices
 end_header
 -5.13780022 -4.5935998 5.58339977 0.503000021 -0.0295000002 -0.863799989
 -5.12069988 -4.84210014 5.59490013 0.495599985 -0.00079999998 -0.868499994

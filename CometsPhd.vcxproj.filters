@@ -2,10 +2,7 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="src\Core\PhysicsConsts.cpp" />
-    <ClCompile Include="src\Core\Rotation.cpp" />
-    <ClCompile Include="src\Core\Vector3.cpp" />
     <ClCompile Include="src\Geometry\CometModel.cpp" />
-    <ClCompile Include="src\Geometry\CometSurface.cpp" />
     <ClCompile Include="src\Geometry\Geometry.cpp" />
     <ClCompile Include="src\Geometry\MeshTriangle.cpp" />
     <ClCompile Include="src\IO\PLY.cpp" />
@@ -18,10 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\PhysicsConsts.h" />
-    <ClInclude Include="src\Core\Rotation.h" />
-    <ClInclude Include="src\Core\Vector3.h" />
     <ClInclude Include="src\Geometry\CometModel.h" />
-    <ClInclude Include="src\Geometry\CometSurface.h" />
     <ClInclude Include="src\Geometry\Geometry.h" />
     <ClInclude Include="src\Geometry\MeshTriangle.h" />
     <ClInclude Include="src\IO\PLY.h" />
@@ -33,5 +27,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="data\plyexample.ply" />
   </ItemGroup>
 </Project>
