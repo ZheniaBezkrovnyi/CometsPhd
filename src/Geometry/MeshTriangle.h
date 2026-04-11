@@ -1,5 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
+#include "PhysicsConsts.h"
 
 struct MeshTriangle {
     glm::dvec3 localCenter;
@@ -19,7 +20,7 @@ struct MeshTriangle {
         glm::dvec3 crossProd = glm::cross(edge1, edge2);
 
         double crossMag = glm::length(crossProd);
-        area = 0.5 * crossMag;
+        area = 0.5 * crossMag * PhysicsConsts::IncreaseAreaCometBy;
 
         localNormal = (crossMag > 1e-9) ? crossProd * (1.0 / crossMag) : glm::dvec3(0, 1, 0);
 

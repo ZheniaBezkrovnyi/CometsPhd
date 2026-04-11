@@ -67,7 +67,7 @@ void EmitDustFromSurface(CometModel& comet, ParticleSystem& particleSys, double 
     std::uniform_real_distribution<double> dist01(0.0, 1.0);
 
     for (const auto& tri : comet.triangles) {
-        if (tri.gasProductionQ > 8.75e-5) {
+        if (tri.gasProductionQ > 1e-12) {
             double dustMassThisStep = tri.gasProductionQ * dt;
             double numParticlesFloat = dustMassThisStep / dustMass;
 
@@ -79,7 +79,7 @@ void EmitDustFromSurface(CometModel& comet, ParticleSystem& particleSys, double 
             for (int i = 0; i < numParticles; i++) {
                 glm::dvec3 spawnPos = tri.GetWorldCenter(comet.currentPosition, comet.currentRotation);
                 Particle p(spawnPos, dustMass, dustRadius);
-                p.velocity = tri.GetWorldNormal(comet.currentRotation) * 10.0;
+                p.velocity = tri.GetWorldNormal(comet.currentRotation) * tri.localGasVelocity;
                 particleSys.AddParticle(p);
             }
         }

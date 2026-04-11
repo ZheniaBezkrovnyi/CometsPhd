@@ -1,6 +1,9 @@
 #pragma once
 
 namespace PhysicsConsts {
+    constexpr double IncreaseAreaCometBy = 1e-7;
+
+
     constexpr double G = 6.674e-11;
     constexpr double Sigma = 5.67e-8;
     constexpr double kB = 1.380649e-23;
