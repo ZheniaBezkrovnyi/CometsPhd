@@ -136,7 +136,7 @@ namespace plycpp
 			return reinterpret_cast<T*>(data.data());
 		}
 
-		const size_t size() const
+		size_t size() const
 		{
 			assert(data.size() % stepSize == 0);
 			return data.size() / stepSize;

@@ -1,2 +1,10 @@
 ﻿.vs
 CometsPhd/x64
+
+build/
+CMakeFiles/
+Debug/
+*.obj
+*.log
+*.tlog
+*.lastbuildstate

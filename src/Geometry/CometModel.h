@@ -8,8 +8,8 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <glm/gtx/norm.hpp>
-#include "PLY.h"           
-#include "PhysicsConsts.h" 
+#include "IO/PLY.h"           
+#include "Core/PhysicsConsts.h" 
 #include "MeshTriangle.h"
 
 class CometModel {
@@ -21,7 +21,7 @@ public:
     double totalGasProductionRate;
 
     CometModel() {
-        currentRotation = glm::dmat3(1.0); // ќдинична матриц€
+        currentRotation = glm::dmat3(1.0);
         currentPosition = glm::dvec3(0.0);
         totalGasProductionRate = 0.0;
     }

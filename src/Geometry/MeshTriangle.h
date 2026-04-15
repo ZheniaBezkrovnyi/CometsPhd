@@ -1,6 +1,6 @@
 #pragma once
 #include <glm/glm.hpp>
-#include "PhysicsConsts.h"
+#include "Core/PhysicsConsts.h"
 
 struct MeshTriangle {
     glm::dvec3 localCenter;

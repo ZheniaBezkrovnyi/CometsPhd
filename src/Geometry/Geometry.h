@@ -5,14 +5,20 @@
 #include <cstdint>
 #include <unordered_set>
 
-using namespace std;
+
+struct InteropVertex {
+    float x, y, z;       // 12
+    float nx, ny, nz;    // 12
+    float r, g, b;       // 12
+    float temperature;   // 4
+};
 
 struct Vertex {
     int index;
 
     float x, y, z;
-    set<int> neighbors;
-    set<int> faceIndices;
+    std::set<int> neighbors;
+    std::set<int> faceIndices;
 
     Vertex operator-(const Vertex& other) const {
         Vertex result;

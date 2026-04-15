@@ -29,8 +29,8 @@ namespace plycpp
 
 
 
-	const unordered_map<type_index, int> dataTypeByteSize{
-		{ CHAR, sizeof(char) },
+	const std::unordered_map<std::type_index, size_t> dataTypeByteSize{
+	    { CHAR, sizeof(char) },
 		{ UCHAR, sizeof(unsigned char) },
 		{ SHORT, sizeof(int16_t) },
 		{ USHORT, sizeof(uint16_t) },

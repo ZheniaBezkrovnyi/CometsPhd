@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <glm/glm.hpp>
 #include "ParticleSystem.h"
-#include "PhysicsConsts.h"
+#include "Core/PhysicsConsts.h"
 #include "Sun.h"
 
 class IForceGenerator {

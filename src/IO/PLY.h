@@ -2,18 +2,17 @@
 #include <string>
 #include <vector>
 #include <typeindex>
-#include "Geometry.h"
+#include "Geometry/Geometry.h"
 #include "plycpp.h"
 
-using namespace std;
 
 class PLY {
 public:
-    PLY(const string& fileName);
-    vector<Vertex> getVertices() const;
-    vector<Face> getFaces() const;
+    PLY(const std::string& fileName);
+    std::vector<Vertex> getVertices() const;
+    std::vector<Face> getFaces() const;
 
 private:
-    string fileName;
-    mutable type_index typeIndex = typeid(void);
+    std::string fileName;
+    mutable std::type_index typeIndex = typeid(void);
 };

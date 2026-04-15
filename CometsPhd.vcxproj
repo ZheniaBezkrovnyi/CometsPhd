@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\CometsPhd.cpp" />
+    <ClCompile Include="src\main.cu" />
     <ClCompile Include="src\Core\PhysicsConsts.cpp" />
     <ClCompile Include="src\Geometry\CometModel.cpp" />
     <ClCompile Include="src\Geometry\Geometry.cpp" />
