@@ -18,6 +18,11 @@
 #include "Core/PhysicsConsts.h"
 
 
+extern "C" {
+    __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
+    __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+
 __device__ void GetHeatmapColor(float temp, float* r, float* g, float* b) {
     float t = fminf(fmaxf((temp - 20.0f) / 380.0f, 0.0f), 1.0f);
 
@@ -33,22 +38,24 @@ __device__ void GetHeatmapColor(float temp, float* r, float* g, float* b) {
     }
 }
 
-__global__ void UpdateCometTemperatureKernel(InteropVertex* vertices, int numVertices, glm::vec3 sunLocalPos) {
+
+__global__ void UpdateCometTemperatureKernel(InteropVertex* vertices, int numVertices, float sunX, float sunY, float sunZ) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
     if (idx >= numVertices) return;
 
-    glm::vec3 pos(vertices[idx].x, vertices[idx].y, vertices[idx].z);
-    glm::vec3 norm(vertices[idx].nx, vertices[idx].ny, vertices[idx].nz);
+    float4 norm = vertices[idx].normal;
 
-    glm::vec3 dirToSun = glm::normalize(sunLocalPos - pos);
-
-    float cosTheta = fmaxf(glm::dot(norm, dirToSun), 0.0f);
-
+    float cosTheta = (norm.x * sunX + norm.y * sunY + norm.z * sunZ);
+    cosTheta = fmaxf(cosTheta, 0.0f);
     float newTemp = 20.0f + cosTheta * 380.0f;
-    vertices[idx].temperature = newTemp;
+    float r, g, b;
+    GetHeatmapColor(newTemp, &r, &g, &b);
 
-    GetHeatmapColor(newTemp, &vertices[idx].r, &vertices[idx].g, &vertices[idx].b);
+    vertices[idx].temperature = make_float4(newTemp, 0.5f, 0.5f, 0.5f);
+    vertices[idx].color = make_float4(r, g, b, 1.0f);
 }
+
 
 // =====================================================================
 // MAIN APPLICATION
@@ -57,16 +64,18 @@ __global__ void UpdateCometTemperatureKernel(InteropVertex* vertices, int numVer
 GLuint vbo;
 cudaGraphicsResource* cuda_vbo_resource;
 
-void CheckCUDAError(const char* msg) {
+void CheckCUDAError(const char* msg, bool fatal = false) {
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
-        std::cerr << "CUDA Error (" << msg << "): code " << (int)err << std::endl;
+        std::cerr << "CUDA Error (" << msg << "): code " << (int)err << " - " << cudaGetErrorString(err) << std::endl;
     }
 }
 
 int main() {
 
     try {
+        cudaSetDevice(0);
+        cudaFree(0);
         std::cout << "[INIT] Loading PLY Model...\n";
         PLY plyModel("C:/Users/ebbez/source/repos/CometsPhd/data/plyexample.ply");
         std::vector<Face> faces = plyModel.getFaces();
@@ -93,15 +102,14 @@ int main() {
             int indices[3] = { face.v1, face.v2, face.v3 };
             for (int i = 0; i < 3; ++i) {
                 InteropVertex v;
-                v.x = verts[indices[i]].x; v.y = verts[indices[i]].y; v.z = verts[indices[i]].z;
-                v.nx = normal.x; v.ny = normal.y; v.nz = normal.z;
-                v.r = 0.5f; v.g = 0.5f; v.b = 0.5f;
-                v.temperature = 20.0f;
+                v.position = make_float4(verts[indices[i]].x, verts[indices[i]].y, verts[indices[i]].z, 0.5f);
+                v.normal = make_float4(normal.x, normal.y, normal.z, 0.5f);
+                v.color = make_float4(0.5f, 0.5f, 0.5f, 0.5f);
+                v.temperature = make_float4(20.0f, 0.5f, 0.5f, 0.5f);
                 hostVertices.push_back(v);
             }
         }
         int totalVertices = hostVertices.size();
-        std::cout << "[INIT] Prepared " << totalVertices << " unrolled vertices.\n";
 
         if (!glfwInit()) return -1;
         GLFWwindow* window = glfwCreateWindow(1024, 768, "Comet CUDA Interop", NULL, NULL);
@@ -116,15 +124,15 @@ int main() {
         glBufferData(GL_ARRAY_BUFFER, totalVertices * sizeof(InteropVertex), hostVertices.data(), GL_DYNAMIC_DRAW);
 
         cudaGraphicsGLRegisterBuffer(&cuda_vbo_resource, vbo, cudaGraphicsMapFlagsNone);
-        CheckCUDAError("GLRegisterBuffer");
+        CheckCUDAError("GLRegisterBuffer", true);
 
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
         glEnableClientState(GL_NORMAL_ARRAY);
 
-        glVertexPointer(3, GL_FLOAT, sizeof(InteropVertex), (void*)offsetof(InteropVertex, x));
-        glNormalPointer(GL_FLOAT, sizeof(InteropVertex), (void*)offsetof(InteropVertex, nx));
-        glColorPointer(3, GL_FLOAT, sizeof(InteropVertex), (void*)offsetof(InteropVertex, r));
+        glVertexPointer(3, GL_FLOAT, sizeof(InteropVertex), (void*)offsetof(InteropVertex, position));
+        glNormalPointer(GL_FLOAT, sizeof(InteropVertex), (void*)offsetof(InteropVertex, normal));
+        glColorPointer(3, GL_FLOAT, sizeof(InteropVertex), (void*)offsetof(InteropVertex, color));
 
         glEnable(GL_DEPTH_TEST);
 
@@ -132,6 +140,9 @@ int main() {
         double dt = 10.0;
 
         Sun sun(glm::dvec3(PhysicsConsts::AU_METERS, 0.0, 0.0));
+
+        int blockSize = 256;
+        int gridSize = (totalVertices + blockSize - 1) / blockSize;
 
         std::cout << "[RUN] Starting Rendering Loop...\n";
         while (!glfwWindowShouldClose(window)) {
@@ -147,12 +158,14 @@ int main() {
             float currentAngle = (float)(t * rotationSpeed);
 
             glm::mat3 invRot = glm::mat3(glm::rotate(glm::mat4(1.0f), -currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)));
-            glm::vec3 sunLocalPos = invRot * glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::vec3 sunLocalDir = invRot * glm::vec3(1.0f, 0.0f, 0.0f);
+            sunLocalDir = glm::normalize(sunLocalDir);
 
-            int blockSize = 256;
-            int gridSize = (totalVertices + blockSize - 1) / blockSize;
-            UpdateCometTemperatureKernel<<<gridSize, blockSize >>>(d_vertices, totalVertices, sunLocalPos);
-            cudaDeviceSynchronize();
+            float3 sunDirFloat3 = make_float3(sunLocalDir.x, sunLocalDir.y, sunLocalDir.z);
+
+            UpdateCometTemperatureKernel<<<gridSize, blockSize>>>(d_vertices, totalVertices, sunLocalDir.x, sunLocalDir.y, sunLocalDir.z);           
+
+            cudaError_t syncErr = cudaDeviceSynchronize();
 
             CheckCUDAError("Kernel Launch");
 
@@ -183,6 +196,7 @@ int main() {
             glBindBuffer(GL_ARRAY_BUFFER, vbo);
             glDrawArrays(GL_TRIANGLES, 0, totalVertices);
 
+            glBindBuffer(GL_ARRAY_BUFFER, 0);
             glfwSwapBuffers(window);
             t += dt;
         }

@@ -4,13 +4,14 @@
 #include <set>
 #include <cstdint>
 #include <unordered_set>
+#include <vector_types.h>
 
 
-struct InteropVertex {
-    float x, y, z;       // 12
-    float nx, ny, nz;    // 12
-    float r, g, b;       // 12
-    float temperature;   // 4
+struct alignas(16) InteropVertex {
+    float4 position;
+    float4 normal;
+    float4 color;
+    float4 temperature;
 };
 
 struct Vertex {
