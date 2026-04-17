@@ -16,6 +16,7 @@
 #include "Physics/Sun.h"
 #include "Geometry/Geometry.h"
 #include "Core/PhysicsConsts.h"
+#include "Core/Timer.h"
 
 extern "C" {
     __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
@@ -24,11 +25,11 @@ extern "C" {
 
 
 struct AppSettings {
-    std::string modelPath = "C:/Users/ebbez/source/repos/CometsPhd/data/plyexample.ply";
+    std::string modelPath = "C:/Users/ebbez/source/repos/CometsPhd/data/Churyumov-Gerasimenko SPC 2017 - 199k poly.ply";
 
     struct {
-        int width = 1000;
-        int height = 1000;
+        int width = 1100;
+        int height = 1100;
         const char* title = "Comet CUDA Interop";
     } window;
 
@@ -41,7 +42,7 @@ struct AppSettings {
     } camera;
 
     struct {
-        double dt = 40.0;
+        double dt = 1.0;
         double rotationPeriodHours = 12.0;
     } physics;
 
@@ -162,6 +163,7 @@ bool InitGraphicsAndInterop(AppContext& ctx, const std::vector<InteropVertex>& v
     }
 
     glfwMakeContextCurrent(ctx.window);
+    //glfwSwapInterval(0);
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) return false;
 
@@ -188,6 +190,7 @@ bool InitGraphicsAndInterop(AppContext& ctx, const std::vector<InteropVertex>& v
 void RunSimulationLoop(AppContext& ctx) {
     std::cout << "[RUN] Starting Rendering Loop...\n";
 
+    FPSCounter fpsCounter;
     double t = 0.0;
     int gridSize = (ctx.totalVertices + ctx.config.thermal.blockSize - 1) / ctx.config.thermal.blockSize;
 
@@ -247,6 +250,8 @@ void RunSimulationLoop(AppContext& ctx) {
 
         glfwSwapBuffers(ctx.window);
         t += ctx.config.physics.dt;
+
+        fpsCounter.Update(ctx.window, ctx.config.window.title);
     }
 }
 
