@@ -4,6 +4,10 @@
 #include <device_launch_parameters.h>
 #include <cuda_gl_interop.h>
 
+#include <optix.h>
+#include <optix_stubs.h>
+#include <optix_function_table_definition.h>
+
 #include <iostream>
 #include <vector>
 #include <cmath>
@@ -42,7 +46,7 @@ struct AppSettings {
     } camera;
 
     struct {
-        double dt = 1.0;
+        double dt = 3.0;
         double rotationPeriodHours = 12.0;
     } physics;
 
@@ -61,11 +65,75 @@ struct AppContext {
     GLFWwindow* window = nullptr;
     GLuint vbo = 0;
     cudaGraphicsResource* cuda_vbo_resource = nullptr;
+
+    OptixDeviceContext optixContext = nullptr;
+    CUcontext cudaContext = nullptr;
+
+    OptixTraversableHandle gasHandle = 0; 
+    CUdeviceptr d_gas_output_buffer = 0;
+
     int totalVertices = 0;
     float maxCoord = 0.0f;
 
     AppSettings config; 
 };
+
+bool BuildOptiXGAS(AppContext& ctx, CUdeviceptr d_vertices) {
+    std::cout << "[OPTIX] Building Geometry Acceleration Structure (BVH)...\n";
+
+    OptixBuildInput buildInput = {};
+    buildInput.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
+
+    CUdeviceptr vertexBuffers[1] = { d_vertices };
+    buildInput.triangleArray.vertexFormat = OPTIX_VERTEX_FORMAT_FLOAT3; 
+    buildInput.triangleArray.vertexStrideInBytes = sizeof(InteropVertex);
+    buildInput.triangleArray.numVertices = ctx.totalVertices;
+    buildInput.triangleArray.vertexBuffers = vertexBuffers;
+
+    buildInput.triangleArray.indexFormat = OPTIX_INDICES_FORMAT_NONE;
+    buildInput.triangleArray.numIndexTriplets = 0;
+    buildInput.triangleArray.indexBuffer = 0;
+
+    uint32_t triangleInputFlags[1] = { OPTIX_GEOMETRY_FLAG_DISABLE_ANYHIT };
+    buildInput.triangleArray.flags = triangleInputFlags;
+    buildInput.triangleArray.numSbtRecords = 1;
+
+    OptixAccelBuildOptions accelOptions = {};
+    accelOptions.buildFlags = OPTIX_BUILD_FLAG_ALLOW_COMPACTION | OPTIX_BUILD_FLAG_PREFER_FAST_TRACE;
+    accelOptions.operation = OPTIX_BUILD_OPERATION_BUILD;
+
+    OptixAccelBufferSizes bufferSizes;
+    optixAccelComputeMemoryUsage(ctx.optixContext, &accelOptions, &buildInput, 1, &bufferSizes);
+
+    CUdeviceptr d_temp_buffer;
+    cudaMalloc((void**)&d_temp_buffer, bufferSizes.tempSizeInBytes);
+    cudaMalloc((void**)&ctx.d_gas_output_buffer, bufferSizes.outputSizeInBytes);
+
+    OptixResult res = optixAccelBuild(
+        ctx.optixContext,
+        0,               
+        &accelOptions,
+        &buildInput,
+        1,       
+        d_temp_buffer,
+        bufferSizes.tempSizeInBytes,
+        ctx.d_gas_output_buffer,
+        bufferSizes.outputSizeInBytes,
+        &ctx.gasHandle,   
+        nullptr, 
+        0        
+    );
+
+    cudaFree((void*)d_temp_buffer);
+
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << "[OPTIX ERROR] Failed to build GAS!\n";
+        return false;
+    }
+
+    std::cout << "[OPTIX] BVH built successfully! Handle: " << ctx.gasHandle << "\n";
+    return true;
+}
 
 // =====================================================================
 // CUDA KERNELS & DEVICE FUNCTIONS
@@ -153,6 +221,38 @@ std::vector<InteropVertex> LoadAndPrepareGeometry(const std::string& filepath, f
     return hostVertices;
 }
 
+
+static void context_log_cb(unsigned int level, const char* tag, const char* message, void* /*cbdata */) {
+    std::cerr << "[" << std::setw(2) << level << "][" << std::setw(12) << tag << "]: " << message << "\n";
+}
+
+bool InitOptiX(AppContext& ctx) {
+    std::cout << "[INIT] Initializing OptiX...\n";
+
+    cudaFree(0);
+    CUcontext cuCtx = 0;
+
+    if (optixInit() != OPTIX_SUCCESS) {
+        std::cerr << "Failed to initialize OptiX!" << std::endl;
+        return false;
+    }
+
+    OptixDeviceContextOptions options = {};
+    options.logCallbackFunction = &context_log_cb;
+    options.logCallbackLevel = 4;
+
+    OptixResult res = optixDeviceContextCreate(cuCtx, &options, &ctx.optixContext);
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << "Failed to create OptiX Context!" << std::endl;
+        return false;
+    }
+
+    std::cout << "[INIT] OptiX Context Created Successfully!\n";
+    return true;
+}
+
+
+
 bool InitGraphicsAndInterop(AppContext& ctx, const std::vector<InteropVertex>& vertices) {
     if (!glfwInit()) return false;
 
@@ -163,7 +263,7 @@ bool InitGraphicsAndInterop(AppContext& ctx, const std::vector<InteropVertex>& v
     }
 
     glfwMakeContextCurrent(ctx.window);
-    //glfwSwapInterval(0);
+    glfwSwapInterval(0);
     glewExperimental = GL_TRUE;
     if (glewInit() != GLEW_OK) return false;
 
@@ -184,6 +284,20 @@ bool InitGraphicsAndInterop(AppContext& ctx, const std::vector<InteropVertex>& v
     glColorPointer(3, GL_FLOAT, sizeof(InteropVertex), (void*)offsetof(InteropVertex, color));
 
     glEnable(GL_DEPTH_TEST);
+
+    InteropVertex* d_vertices;
+    size_t num_bytes;
+
+    cudaGraphicsMapResources(1, &ctx.cuda_vbo_resource, 0);
+    cudaGraphicsResourceGetMappedPointer((void**)&d_vertices, &num_bytes, ctx.cuda_vbo_resource);
+
+    if (!BuildOptiXGAS(ctx, (CUdeviceptr)d_vertices)) {
+        std::cerr << "Failed to build OptiX GAS during initialization!" << std::endl;
+        return false;
+    }
+
+    cudaGraphicsUnmapResources(1, &ctx.cuda_vbo_resource, 0);
+
     return true;
 }
 
@@ -271,6 +385,8 @@ int main() {
         cudaFree(0);
 
         AppContext app;
+
+        InitOptiX(app);
 
         std::vector<InteropVertex> vertices = LoadAndPrepareGeometry(app.config.modelPath, app.maxCoord, app.config.thermal.baseTemp);
 
