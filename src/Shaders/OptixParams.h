@@ -11,4 +11,6 @@ struct OptixParams {
     float3 sunDir;  
     float baseTemp;
     float tempScale;
+
+    unsigned int frameCount;
 };

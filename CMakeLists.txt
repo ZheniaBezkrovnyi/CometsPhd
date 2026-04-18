@@ -21,6 +21,8 @@ file(GLOB_RECURSE SOURCES
     "src/*.h"
 )
 
+set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/OptixKernels.cu" PROPERTIES HEADER_FILE_ONLY TRUE)
+
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${SOURCES})
 
 add_executable(CometSimulator ${SOURCES})
@@ -38,7 +40,6 @@ add_custom_command(
             ${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/OptixParams.h
     COMMENT "Compiling OptiX PTX Shaders..."
 )
-
 
 target_sources(CometSimulator PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/OptixKernels.ptx)
 
