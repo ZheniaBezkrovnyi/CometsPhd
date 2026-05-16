@@ -40,22 +40,24 @@ vector<Face> PLY::getFaces() const {
     load(fileName, plyData);
 
     vector<Face> faces;
+    string facePropName = "vertex_indices"; 
+
     for (const auto& element : plyData) {
-        for (const auto& prop : element.data->properties)
-        {
-            if (prop.key == string("vertex_indices")) {
+        for (const auto& prop : element.data->properties) {
+            if (prop.key == "vertex_indices" || prop.key == "vertex_index") {
                 typeIndex = prop.data->type;
+                facePropName = prop.key; 
             }
         }
     }
+
     for (const auto& element : plyData) {
         if (element.key == "face") {
             auto plyFace = plyData["face"];
-            auto faceProperty = plyFace->properties["vertex_indices"];
+
+            auto faceProperty = plyFace->properties[facePropName];
 
             bool isUnsigned = typeIndex.name() == string("unsigned int");
-
-            cout << plyFace->size() << "plyFace->size()" << endl;
 
             for (int i = 0; i + 2 < faceProperty->size(); i += 3) {
                 Face face;
@@ -63,8 +65,6 @@ vector<Face> PLY::getFaces() const {
                     face.v1 = static_cast<int>(faceProperty->at<unsigned int>(i));
                     face.v2 = static_cast<int>(faceProperty->at<unsigned int>(i + 1));
                     face.v3 = static_cast<int>(faceProperty->at<unsigned int>(i + 2));
-
-                    //cout << face.v1 << "   " << face.v2 << "   " << face.v3 << "   " << endl;
                 }
                 else {
                     face.v1 = faceProperty->at<int>(i);

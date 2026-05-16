@@ -14,6 +14,7 @@
 #include <cmath>
 #include <fstream>
 #include <sstream>
+#include <limits>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -34,6 +35,7 @@ extern "C" {
 struct AppSettings {
     std::string modelPath = "C:/Users/ebbez/source/repos/CometsPhd/data/Churyumov-Geras_SPC 2017 - 199k.ply";
     std::string ptxPath = "OptixKernels.ptx";
+
     struct {
         int width = 1100;
         int height = 1100;
@@ -49,14 +51,19 @@ struct AppSettings {
     } camera;
 
     struct {
-        double dt = 300.0;
+        double fixedDt = 300.0;
+        double timeScale = 3600.0;
         double rotationPeriodHours = 12.0;
+        double rh_AU = 1.3;
     } physics;
 
     struct {
-        int blockSize = 256;
-        float baseTemp = 20.0f;
-        float tempScale = 380.0f;
+        float solarConstant = 1361.0f;
+        float albedo = 0.04f;
+        float emissivity = 0.95f;
+        float activeFraction = 1.0f;
+        float minTemp = 40.0f;
+        float maxTempForColor = 230.0f;
     } thermal;
 };
 
@@ -99,6 +106,75 @@ struct AppContext {
 
     AppSettings config;
 };
+
+
+void PrintTemperatureDebug(const InteropVertex* d_vertices, int totalVertices, unsigned int frameCount, int intervalFrames = 30) {
+    if (frameCount % intervalFrames != 0) return;
+    if (totalVertices <= 0) return;
+
+    std::vector<InteropVertex> hostVertices(totalVertices);
+
+    cudaMemcpy(
+        hostVertices.data(),
+        d_vertices,
+        totalVertices * sizeof(InteropVertex),
+        cudaMemcpyDeviceToHost
+    );
+
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::cerr << "[TEMP DEBUG] cudaMemcpy failed: " << cudaGetErrorString(err) << "\n";
+        return;
+    }
+
+    double tempSum = 0.0;
+    double fluxSum = 0.0;
+
+    float minTemp = std::numeric_limits<float>::max();
+    float maxTemp = -std::numeric_limits<float>::max();
+
+    float minFlux = std::numeric_limits<float>::max();
+    float maxFlux = -std::numeric_limits<float>::max();
+
+    int validCount = 0;
+
+    for (int i = 0; i < totalVertices; i += 3) {
+        float temp = hostVertices[i].temperature.x;
+        float flux = hostVertices[i].temperature.y;
+
+        if (!std::isfinite(temp) || !std::isfinite(flux)) continue;
+
+        minTemp = std::min(minTemp, temp);
+        maxTemp = std::max(maxTemp, temp);
+
+        minFlux = std::min(minFlux, flux);
+        maxFlux = std::max(maxFlux, flux);
+
+        tempSum += temp;
+        fluxSum += flux;
+
+        validCount++;
+    }
+
+    if (validCount == 0) {
+        std::cout << "[TEMP DEBUG] no valid values\n";
+        return;
+    }
+
+    double avgTemp = tempSum / validCount;
+    double avgFlux = fluxSum / validCount;
+
+    std::cout
+        << "[TEMP DEBUG] frame=" << frameCount
+        << " faces=" << validCount
+        << " T_min=" << minTemp << " K"
+        << " T_avg=" << avgTemp << " K"
+        << " T_max=" << maxTemp << " K"
+        << " Flux_min=" << minFlux << " W/m2"
+        << " Flux_avg=" << avgFlux << " W/m2"
+        << " Flux_max=" << maxFlux << " W/m2"
+        << "\n";
+}
 
 void CheckCUDAError(const char* msg, bool fatal = false) {
     cudaError_t err = cudaGetLastError();
@@ -355,18 +431,32 @@ void RunSimulationLoop(AppContext& ctx) {
     std::cout << "[RUN] Starting Rendering Loop...\n";
 
     FPSCounter fpsCounter;
-    double t = 0.0;
+
+    double simulationTime = 0.0;
+    double previousRealTime = glfwGetTime();
+    unsigned int frameCount = 0;
 
     while (!glfwWindowShouldClose(ctx.window)) {
         glfwPollEvents();
+
+        double currentRealTime = glfwGetTime();
+        double realDt = currentRealTime - previousRealTime;
+        previousRealTime = currentRealTime;
+
+        if (realDt > 0.25) {
+            realDt = 0.25;
+        }
+
+        simulationTime += realDt * ctx.config.physics.timeScale;
 
         InteropVertex* d_vertices;
         size_t num_bytes;
         cudaGraphicsMapResources(1, &ctx.cuda_vbo_resource, 0);
         cudaGraphicsResourceGetMappedPointer((void**)&d_vertices, &num_bytes, ctx.cuda_vbo_resource);
 
-        double rotationSpeed = 2.0 * PhysicsConsts::PI / (ctx.config.physics.rotationPeriodHours * 3600.0);
-        float currentAngle = (float)(t * rotationSpeed);
+        double rotationPeriodSeconds = ctx.config.physics.rotationPeriodHours * 3600.0;
+        double rotationSpeed = 2.0 * PhysicsConsts::PI / rotationPeriodSeconds;
+        float currentAngle = (float)fmod(simulationTime * rotationSpeed, 2.0 * PhysicsConsts::PI);
 
         glm::mat3 invRot = glm::mat3(glm::rotate(glm::mat4(1.0f), -currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)));
         glm::vec3 sunLocalDir = glm::normalize(invRot * glm::vec3(1.0f, 0.0f, 0.0f));
@@ -374,9 +464,19 @@ void RunSimulationLoop(AppContext& ctx) {
         ctx.params.handle = ctx.gasHandle;
         ctx.params.vertices = d_vertices;
         ctx.params.numVertices = ctx.totalVertices;
+
         ctx.params.sunDir = make_float3(sunLocalDir.x, sunLocalDir.y, sunLocalDir.z);
-        ctx.params.baseTemp = ctx.config.thermal.baseTemp;
-        ctx.params.tempScale = ctx.config.thermal.tempScale;
+
+        ctx.params.rh_AU = (float)ctx.config.physics.rh_AU;
+        ctx.params.solarConstant = ctx.config.thermal.solarConstant;
+        ctx.params.albedo = ctx.config.thermal.albedo;
+        ctx.params.emissivity = ctx.config.thermal.emissivity;
+        ctx.params.activeFraction = ctx.config.thermal.activeFraction;
+
+        ctx.params.minTemp = ctx.config.thermal.minTemp;
+        ctx.params.maxTempForColor = ctx.config.thermal.maxTempForColor;
+
+        ctx.params.frameCount = frameCount;
 
         cudaMemcpyAsync(reinterpret_cast<void*>(ctx.d_params), &ctx.params, sizeof(OptixParams), cudaMemcpyHostToDevice, 0);
 
@@ -384,6 +484,8 @@ void RunSimulationLoop(AppContext& ctx) {
         optixLaunch(ctx.pipeline, 0, ctx.d_params, sizeof(OptixParams), &ctx.sbt, numTriangles, 1, 1);
         cudaDeviceSynchronize();
         CheckCUDAError("OptiX Launch");
+
+        PrintTemperatureDebug(d_vertices, ctx.totalVertices, frameCount, 30);
 
         cudaGraphicsUnmapResources(1, &ctx.cuda_vbo_resource, 0);
 
@@ -410,6 +512,7 @@ void RunSimulationLoop(AppContext& ctx) {
             glm::vec3(0, ctx.maxCoord * ctx.config.camera.heightMultiplier, ctx.maxCoord * ctx.config.camera.distanceMultiplier),
             glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)
         );
+
         glm::mat4 model = glm::rotate(glm::mat4(1.0f), currentAngle, glm::vec3(0, 1, 0));
         glLoadMatrixf(glm::value_ptr(view * model));
 
@@ -418,7 +521,8 @@ void RunSimulationLoop(AppContext& ctx) {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glfwSwapBuffers(ctx.window);
-        t += ctx.config.physics.dt;
+
+        frameCount++;
 
         fpsCounter.Update(ctx.window, ctx.config.window.title);
     }
@@ -454,7 +558,7 @@ int main() {
         AppContext app;
 
         InitOptiX(app);
-        std::vector<InteropVertex> vertices = LoadAndPrepareGeometry(app.config.modelPath, app.maxCoord, app.config.thermal.baseTemp);
+        std::vector<InteropVertex> vertices = LoadAndPrepareGeometry(app.config.modelPath, app.maxCoord, app.config.thermal.minTemp);
 
         if (!InitGraphicsAndInterop(app, vertices)) {
             std::cerr << "Failed to initialize graphics or OptiX pipeline!" << std::endl;
