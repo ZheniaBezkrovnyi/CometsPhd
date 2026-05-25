@@ -64,7 +64,25 @@ struct AppSettings {
         float activeFraction = 1.0f;
         float minTemp = 40.0f;
         float maxTempForColor = 230.0f;
+
+        int indirectSamples = 16;
+        unsigned int indirectSeed = 1337u;
+        float indirectSolarScale = 0.15f;
+        float indirectIRScale = 0.05f;
+        float maxIndirectFractionOfSolarFlux = 0.10f;
+        float rayEpsilon = 0.01f;
     } thermal;
+
+    struct {
+        bool startupLogs = false;
+        bool optixLogs = false;
+
+        bool temperatureDebug = false;
+        int temperatureDebugIntervalFrames = 300;
+
+        bool cudaErrorChecks = false;
+        bool syncAfterKernels = false;
+    } diagnostics;
 };
 
 template <typename T>
@@ -76,9 +94,6 @@ typedef SbtRecord<int> RayGenSbtRecord;
 typedef SbtRecord<int> MissSbtRecord;
 typedef SbtRecord<int> HitGroupSbtRecord;
 
-// =====================================================================
-// APPLICATION CONTEXT
-// =====================================================================
 
 struct AppContext {
     GLFWwindow* window = nullptr;
@@ -99,6 +114,7 @@ struct AppContext {
     OptixShaderBindingTable sbt = {};
 
     CUdeviceptr d_params = 0;
+    float4* d_prevTemperature = nullptr;
     OptixParams params;
 
     int totalVertices = 0;
@@ -176,10 +192,17 @@ void PrintTemperatureDebug(const InteropVertex* d_vertices, int totalVertices, u
         << "\n";
 }
 
-void CheckCUDAError(const char* msg, bool fatal = false) {
-    cudaError_t err = cudaGetLastError();
+void CheckCUDAError(const AppContext& ctx, const char* msg, bool fatal = false) {
+    if (!ctx.config.diagnostics.cudaErrorChecks) return;
+
+    cudaError_t err = cudaPeekAtLastError();
     if (err != cudaSuccess) {
-        std::cerr << "CUDA Error (" << msg << "): code " << (int)err << " - " << cudaGetErrorString(err) << std::endl;
+        std::cerr
+            << "[CUDA ERROR] " << msg
+            << " | code=" << (int)err
+            << " | " << cudaGetErrorString(err)
+            << "\n";
+
         if (fatal) exit(-1);
     }
 }
@@ -225,7 +248,9 @@ std::vector<InteropVertex> LoadAndPrepareGeometry(const std::string& filepath, f
 }
 
 bool BuildOptiXGAS(AppContext& ctx, CUdeviceptr d_vertices) {
-    std::cout << "[OPTIX] Building Geometry Acceleration Structure (BVH)...\n";
+    if (ctx.config.diagnostics.startupLogs) {
+        std::cout << "[OPTIX] Building GAS...\n";
+    }
     OptixBuildInput buildInput = {};
     buildInput.type = OPTIX_BUILD_INPUT_TYPE_TRIANGLES;
 
@@ -268,7 +293,9 @@ bool BuildOptiXGAS(AppContext& ctx, CUdeviceptr d_vertices) {
         return false;
     }
 
-    std::cout << "[OPTIX] BVH built successfully! Handle: " << ctx.gasHandle << "\n";
+    if (ctx.config.diagnostics.startupLogs) {
+        std::cout << "[OPTIX] GAS built successfully.\n";
+    }
     return true;
 }
 
@@ -284,7 +311,9 @@ std::string ReadPTX(const std::string& filepath) {
 }
 
 bool BuildOptiXPipeline(AppContext& ctx) {
-    std::cout << "[OPTIX] Building Pipeline...\n";
+    if (ctx.config.diagnostics.startupLogs) {
+        std::cout << "[OPTIX] Building pipeline...\n";
+    }
 
     OptixModuleCompileOptions moduleCompileOptions = {};
     moduleCompileOptions.maxRegisterCount = OPTIX_COMPILE_DEFAULT_MAX_REGISTER_COUNT;
@@ -304,12 +333,23 @@ bool BuildOptiXPipeline(AppContext& ctx) {
 
     char log[2048];
     size_t sizeof_log = sizeof(log);
+    log[0] = '\0';
 
     OptixResult res = optixModuleCreate(
-        ctx.optixContext, &moduleCompileOptions, &pipelineCompileOptions,
-        ptx.c_str(), ptx.size(), log, &sizeof_log, &ctx.module
+        ctx.optixContext,
+        &moduleCompileOptions,
+        &pipelineCompileOptions,
+        ptx.c_str(),
+        ptx.size(),
+        log,
+        &sizeof_log,
+        &ctx.module
     );
-    if (res != OPTIX_SUCCESS) return false;
+
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << " Module creation failed! Log:\n" << log << "\n";
+        return false;
+    }
 
     OptixProgramGroupOptions pgOptions = {};
 
@@ -317,40 +357,127 @@ bool BuildOptiXPipeline(AppContext& ctx) {
     rgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
     rgDesc.raygen.module = ctx.module;
     rgDesc.raygen.entryFunctionName = "__raygen__rg";
-    optixProgramGroupCreate(ctx.optixContext, &rgDesc, 1, &pgOptions, log, &sizeof_log, &ctx.raygenPG);
+
+    sizeof_log = sizeof(log);
+    log[0] = '\0';
+
+    res = optixProgramGroupCreate(
+        ctx.optixContext,
+        &rgDesc,
+        1,
+        &pgOptions,
+        log,
+        &sizeof_log,
+        &ctx.raygenPG
+    );
+
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << " RayGen PG creation failed! Log:\n" << log << "\n";
+        return false;
+    }
 
     OptixProgramGroupDesc msDesc = {};
     msDesc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
     msDesc.miss.module = ctx.module;
     msDesc.miss.entryFunctionName = "__miss__ms";
-    optixProgramGroupCreate(ctx.optixContext, &msDesc, 1, &pgOptions, log, &sizeof_log, &ctx.missPG);
+
+    sizeof_log = sizeof(log);
+    log[0] = '\0';
+
+    res = optixProgramGroupCreate(
+        ctx.optixContext,
+        &msDesc,
+        1,
+        &pgOptions,
+        log,
+        &sizeof_log,
+        &ctx.missPG
+    );
+
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << " Miss PG creation failed! Log:\n" << log << "\n";
+        return false;
+    }
 
     OptixProgramGroupDesc hgDesc = {};
     hgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_HITGROUP;
     hgDesc.hitgroup.moduleCH = ctx.module;
     hgDesc.hitgroup.entryFunctionNameCH = "__closesthit__ch";
-    optixProgramGroupCreate(ctx.optixContext, &hgDesc, 1, &pgOptions, log, &sizeof_log, &ctx.hitgroupPG);
 
-    OptixProgramGroup programGroups[] = { ctx.raygenPG, ctx.missPG, ctx.hitgroupPG };
+    sizeof_log = sizeof(log);
+    log[0] = '\0';
+
+    res = optixProgramGroupCreate(
+        ctx.optixContext,
+        &hgDesc,
+        1,
+        &pgOptions,
+        log,
+        &sizeof_log,
+        &ctx.hitgroupPG
+    );
+
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << " HitGroup PG creation failed! Log:\n" << log << "\n";
+        return false;
+    }
+
+    OptixProgramGroup programGroups[] = {
+        ctx.raygenPG,
+        ctx.missPG,
+        ctx.hitgroupPG
+    };
+
     OptixPipelineLinkOptions pipelineLinkOptions = {};
     pipelineLinkOptions.maxTraceDepth = 1;
 
-    optixPipelineCreate(ctx.optixContext, &pipelineCompileOptions, &pipelineLinkOptions,
-        programGroups, 3, log, &sizeof_log, &ctx.pipeline);
+    sizeof_log = sizeof(log);
+    log[0] = '\0';
 
-    CUdeviceptr d_raygen, d_miss, d_hitgroup;
+    res = optixPipelineCreate(
+        ctx.optixContext,
+        &pipelineCompileOptions,
+        &pipelineLinkOptions,
+        programGroups,
+        3,
+        log,
+        &sizeof_log,
+        &ctx.pipeline
+    );
 
-    RayGenSbtRecord rgSBT;
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << " Pipeline link failed! Log:\n" << log << "\n";
+        return false;
+    }
+
+    res = optixPipelineSetStackSize(
+        ctx.pipeline,
+        2048,
+        2048,
+        2048,
+        1
+    );
+
+    if (res != OPTIX_SUCCESS) {
+        std::cerr << " Pipeline stack setup failed!\n";
+        return false;
+    }
+
+    CUdeviceptr d_raygen = 0;
+    CUdeviceptr d_miss = 0;
+    CUdeviceptr d_hitgroup = 0;
+
+    RayGenSbtRecord rgSBT = {};
     optixSbtRecordPackHeader(ctx.raygenPG, &rgSBT);
     cudaMalloc(reinterpret_cast<void**>(&d_raygen), sizeof(RayGenSbtRecord));
     cudaMemcpy(reinterpret_cast<void*>(d_raygen), &rgSBT, sizeof(RayGenSbtRecord), cudaMemcpyHostToDevice);
 
-    MissSbtRecord msSBT;
+    MissSbtRecord msSBT = {};
     optixSbtRecordPackHeader(ctx.missPG, &msSBT);
     cudaMalloc(reinterpret_cast<void**>(&d_miss), sizeof(MissSbtRecord));
     cudaMemcpy(reinterpret_cast<void*>(d_miss), &msSBT, sizeof(MissSbtRecord), cudaMemcpyHostToDevice);
 
-    HitGroupSbtRecord hgSBT;
+    HitGroupSbtRecord hgSBT = {};
     optixSbtRecordPackHeader(ctx.hitgroupPG, &hgSBT);
     cudaMalloc(reinterpret_cast<void**>(&d_hitgroup), sizeof(HitGroupSbtRecord));
     cudaMemcpy(reinterpret_cast<void*>(d_hitgroup), &hgSBT, sizeof(HitGroupSbtRecord), cudaMemcpyHostToDevice);
@@ -364,22 +491,38 @@ bool BuildOptiXPipeline(AppContext& ctx) {
     ctx.sbt.hitgroupRecordCount = 1;
 
     cudaMalloc(reinterpret_cast<void**>(&ctx.d_params), sizeof(OptixParams));
+    CheckCUDAError(ctx, "cudaMalloc d_params", true);
 
-    std::cout << "[OPTIX] Pipeline and SBT built successfully!\n";
+    if (ctx.config.diagnostics.startupLogs) {
+        std::cout << "[OPTIX] Pipeline and SBT built successfully.\n";
+    }
     return true;
 }
 
 bool InitOptiX(AppContext& ctx) {
-    std::cout << "[INIT] Initializing OptiX...\n";
+    if (ctx.config.diagnostics.startupLogs) {
+        std::cout << "[INIT] Initializing OptiX...\n";
+    }
+
     cudaFree(0);
+
     CUcontext cuCtx = 0;
     if (optixInit() != OPTIX_SUCCESS) return false;
 
     OptixDeviceContextOptions options = {};
-    options.logCallbackFunction = &context_log_cb;
-    options.logCallbackLevel = 4;
 
-    if (optixDeviceContextCreate(cuCtx, &options, &ctx.optixContext) != OPTIX_SUCCESS) return false;
+    if (ctx.config.diagnostics.optixLogs) {
+        options.logCallbackFunction = &context_log_cb;
+        options.logCallbackLevel = 4;
+    }
+    else {
+        options.logCallbackFunction = nullptr;
+        options.logCallbackLevel = 0;
+    }
+
+    if (optixDeviceContextCreate(cuCtx, &options, &ctx.optixContext) != OPTIX_SUCCESS) {
+        return false;
+    }
 
     return true;
 }
@@ -398,13 +541,15 @@ bool InitGraphicsAndInterop(AppContext& ctx, const std::vector<InteropVertex>& v
     if (glewInit() != GLEW_OK) return false;
 
     ctx.totalVertices = vertices.size();
+    cudaMalloc(&ctx.d_prevTemperature, ctx.totalVertices * sizeof(float4));
+    CheckCUDAError(ctx, "cudaMalloc d_prevTemperature", true);
 
     glGenBuffers(1, &ctx.vbo);
     glBindBuffer(GL_ARRAY_BUFFER, ctx.vbo);
     glBufferData(GL_ARRAY_BUFFER, ctx.totalVertices * sizeof(InteropVertex), vertices.data(), GL_DYNAMIC_DRAW);
 
     cudaGraphicsGLRegisterBuffer(&ctx.cuda_vbo_resource, ctx.vbo, cudaGraphicsMapFlagsNone);
-    CheckCUDAError("GLRegisterBuffer", true);
+    CheckCUDAError(ctx, "GLRegisterBuffer", true);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_COLOR_ARRAY);
@@ -420,15 +565,51 @@ bool InitGraphicsAndInterop(AppContext& ctx, const std::vector<InteropVertex>& v
     cudaGraphicsMapResources(1, &ctx.cuda_vbo_resource, 0);
     cudaGraphicsResourceGetMappedPointer((void**)&d_vertices, &num_bytes, ctx.cuda_vbo_resource);
 
-    if (!BuildOptiXGAS(ctx, (CUdeviceptr)d_vertices)) return false;
-    if (!BuildOptiXPipeline(ctx)) return false;
+    bool gasOk = BuildOptiXGAS(ctx, (CUdeviceptr)d_vertices);
+    if (!gasOk) {
+        cudaGraphicsUnmapResources(1, &ctx.cuda_vbo_resource, 0);
+        return false;
+    }
+
+    bool pipelineOk = BuildOptiXPipeline(ctx);
+    if (!pipelineOk) {
+        cudaGraphicsUnmapResources(1, &ctx.cuda_vbo_resource, 0);
+        return false;
+    }
 
     cudaGraphicsUnmapResources(1, &ctx.cuda_vbo_resource, 0);
     return true;
 }
 
+__global__ void CopyTemperatureKernel(const InteropVertex* vertices, float4* prevTemperature, int numVertices) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= numVertices) return;
+
+    prevTemperature[idx] = vertices[idx].temperature;
+}
+
+void CopyPreviousTemperature(
+    const AppContext& ctx,
+    const InteropVertex* d_vertices,
+    float4* d_prevTemperature,
+    int totalVertices
+) {
+    int blockSize = 256;
+    int gridSize = (totalVertices + blockSize - 1) / blockSize;
+
+    CopyTemperatureKernel << <gridSize, blockSize >> > (d_vertices, d_prevTemperature, totalVertices);
+
+    if (ctx.config.diagnostics.syncAfterKernels) {
+        cudaDeviceSynchronize();
+    }
+
+    CheckCUDAError(ctx, "CopyTemperatureKernel", true);
+}
+
 void RunSimulationLoop(AppContext& ctx) {
-    std::cout << "[RUN] Starting Rendering Loop...\n";
+    if (ctx.config.diagnostics.startupLogs) {
+        std::cout << "[RUN] Starting rendering loop...\n";
+    }
 
     FPSCounter fpsCounter;
 
@@ -461,8 +642,12 @@ void RunSimulationLoop(AppContext& ctx) {
         glm::mat3 invRot = glm::mat3(glm::rotate(glm::mat4(1.0f), -currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)));
         glm::vec3 sunLocalDir = glm::normalize(invRot * glm::vec3(1.0f, 0.0f, 0.0f));
 
+
+        CopyPreviousTemperature(ctx, d_vertices, ctx.d_prevTemperature, ctx.totalVertices);
+
         ctx.params.handle = ctx.gasHandle;
         ctx.params.vertices = d_vertices;
+        ctx.params.prevTemperature = ctx.d_prevTemperature;
         ctx.params.numVertices = ctx.totalVertices;
 
         ctx.params.sunDir = make_float3(sunLocalDir.x, sunLocalDir.y, sunLocalDir.z);
@@ -478,14 +663,38 @@ void RunSimulationLoop(AppContext& ctx) {
 
         ctx.params.frameCount = frameCount;
 
-        cudaMemcpyAsync(reinterpret_cast<void*>(ctx.d_params), &ctx.params, sizeof(OptixParams), cudaMemcpyHostToDevice, 0);
+        ctx.params.indirectSamples = ctx.config.thermal.indirectSamples;
+        ctx.params.indirectSeed = ctx.config.thermal.indirectSeed;
+        ctx.params.indirectSolarScale = ctx.config.thermal.indirectSolarScale;
+        ctx.params.indirectIRScale = ctx.config.thermal.indirectIRScale;
+        ctx.params.maxIndirectFractionOfSolarFlux = ctx.config.thermal.maxIndirectFractionOfSolarFlux;
+        ctx.params.rayEpsilon = ctx.config.thermal.rayEpsilon;
+
+        cudaMemcpy(
+            reinterpret_cast<void*>(ctx.d_params),
+            &ctx.params,
+            sizeof(OptixParams),
+            cudaMemcpyHostToDevice
+        );
+        CheckCUDAError(ctx, "copy OptixParams", true);
 
         int numTriangles = ctx.totalVertices / 3;
         optixLaunch(ctx.pipeline, 0, ctx.d_params, sizeof(OptixParams), &ctx.sbt, numTriangles, 1, 1);
-        cudaDeviceSynchronize();
-        CheckCUDAError("OptiX Launch");
 
-        PrintTemperatureDebug(d_vertices, ctx.totalVertices, frameCount, 30);
+        if (ctx.config.diagnostics.syncAfterKernels) {
+            cudaDeviceSynchronize();
+        }
+
+        CheckCUDAError(ctx, "OptiX Launch");
+
+        if (ctx.config.diagnostics.temperatureDebug) {
+            PrintTemperatureDebug(
+                d_vertices,
+                ctx.totalVertices,
+                frameCount,
+                ctx.config.diagnostics.temperatureDebugIntervalFrames
+            );
+        }
 
         cudaGraphicsUnmapResources(1, &ctx.cuda_vbo_resource, 0);
 
@@ -529,6 +738,7 @@ void RunSimulationLoop(AppContext& ctx) {
 }
 
 void Cleanup(AppContext& ctx) {
+    if (ctx.d_prevTemperature) cudaFree(ctx.d_prevTemperature);
     if (ctx.d_params) cudaFree(reinterpret_cast<void*>(ctx.d_params));
     if (ctx.d_gas_output_buffer) cudaFree(reinterpret_cast<void*>(ctx.d_gas_output_buffer));
     if (ctx.pipeline) optixPipelineDestroy(ctx.pipeline);
@@ -557,8 +767,16 @@ int main() {
 
         AppContext app;
 
-        InitOptiX(app);
-        std::vector<InteropVertex> vertices = LoadAndPrepareGeometry(app.config.modelPath, app.maxCoord, app.config.thermal.minTemp);
+        if (!InitOptiX(app)) {
+            std::cerr << "Failed to initialize OptiX!" << std::endl;
+            return -1;
+        }
+
+        std::vector<InteropVertex> vertices = LoadAndPrepareGeometry(
+            app.config.modelPath,
+            app.maxCoord,
+            app.config.thermal.minTemp
+        );
 
         if (!InitGraphicsAndInterop(app, vertices)) {
             std::cerr << "Failed to initialize graphics or OptiX pipeline!" << std::endl;

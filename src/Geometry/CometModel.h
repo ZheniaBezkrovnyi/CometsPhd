@@ -88,13 +88,14 @@ public:
 
 private:
     double SolveFaceTemperature(double EnergyInput) {
-        double eta = 0.1;
-        double E_avail = EnergyInput * (1.0 - eta);
+        double E_avail = EnergyInput;
 
-        if (E_avail < 1e-5) return 20.0;
+        if (E_avail <= 1e-6) return 40.0;
 
-        double T = 200.0;
+        double T = 180.0;
         double epsilon = PhysicsConsts::Emissivity;
+
+        double activeFraction = 1.0;
 
         const double sigma = PhysicsConsts::Sigma;
         const double L_sub = PhysicsConsts::L_sub;
@@ -102,23 +103,31 @@ private:
         const double kB = PhysicsConsts::kB;
         const double PI = PhysicsConsts::PI;
 
-        for (int i = 0; i < 8; i++) {
+        const double sqrt_const = 1.6113e-24;
+
+        for (int i = 0; i < 20; i++) {
             double P_vap = 3.56e12 * std::exp(-6141.0 / T);
             double sqrtT = std::sqrt(T);
-            double Z = P_vap / (std::sqrt(2 * PI * m_gas * kB) * sqrtT);
+
+            double numFlux = (activeFraction * P_vap) / (sqrt_const * sqrtT);
+            double massFlux = numFlux * m_gas;
 
             double Rad = epsilon * sigma * (T * T * T * T);
-            double Sub = L_sub * m_gas * Z;
+            double Sub = L_sub * massFlux;
             double F = Rad + Sub - E_avail;
 
             double dRad = 4.0 * epsilon * sigma * (T * T * T);
-            double dSub = Sub * (6141.0 / (T * T) - 0.5 / T);
+
+            double dlnZ = 6141.0 / (T * T) - 0.5 / T;
+            double dSub = Sub * dlnZ;
             double dF = dRad + dSub;
 
             double T_new = T - F / dF;
 
-            if (std::abs(T_new - T) < 0.01) return T_new;
-            if (T_new < 10.0) T_new = 10.0;
+            if (std::abs(T_new - T) < 0.001) return T_new;
+
+            if (T_new < 40.0) T_new = 40.0;
+            if (T_new > 400.0) T_new = 400.0;
 
             T = T_new;
         }

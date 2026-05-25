@@ -17,9 +17,7 @@ static __forceinline__ __device__ float VaporPressureH2O(float T) {
 
 static __forceinline__ __device__ float SublimationNumberFluxH2O(float T, float activeFraction) {
     float P = VaporPressureH2O(T);
-
     const float sqrt_const = 1.6113e-24f;
-
     return activeFraction * P / (sqrt_const * sqrtf(T));
 }
 
@@ -28,17 +26,15 @@ static __forceinline__ __device__ float SublimationMassFluxH2O(float T, float ac
     return SublimationNumberFluxH2O(T, activeFraction) * m;
 }
 
-static __forceinline__ __device__ float SolveSurfaceTemperature(float absorbedFlux) {
+static __forceinline__ __device__ float SolveSurfaceTemperature(float absorbedFlux, float T_initial = 180.0f) {
     const float sigma = 5.670374419e-8f;
     const float latentHeat = 2.83e6f;
 
     if (absorbedFlux <= 1e-6f) return params.minTemp;
 
-    float T = 180.0f;
-
+    float T = fmaxf(T_initial, params.minTemp);
     for (int i = 0; i < 20; ++i) {
         float massFlux = SublimationMassFluxH2O(T, params.activeFraction);
-
         float radiation = params.emissivity * sigma * T * T * T * T;
         float sublimation = latentHeat * massFlux;
 
@@ -47,13 +43,11 @@ static __forceinline__ __device__ float SolveSurfaceTemperature(float absorbedFl
         float dRadiation = 4.0f * params.emissivity * sigma * T * T * T;
         float dlnZ = 6141.0f / (T * T) - 0.5f / T;
         float dSublimation = sublimation * dlnZ;
-
         float dF = dRadiation + dSublimation;
 
         T -= F / dF;
         T = fminf(fmaxf(T, params.minTemp), 400.0f);
     }
-
     return T;
 }
 
@@ -85,28 +79,14 @@ __device__ void GetHeatmapColor(float temp, float minTemp, float maxTemp, float*
     float3 c6 = make_float3(1.000f, 0.950f, 0.760f);
 
     float3 color;
-
-    if (t < 0.14f) {
-        color = LerpColor(c0, c1, SmoothStep(0.00f, 0.14f, t));
-    }
-    else if (t < 0.34f) {
-        color = LerpColor(c1, c2, SmoothStep(0.14f, 0.34f, t));
-    }
-    else if (t < 0.54f) {
-        color = LerpColor(c2, c3, SmoothStep(0.34f, 0.54f, t));
-    }
-    else if (t < 0.74f) {
-        color = LerpColor(c3, c4, SmoothStep(0.54f, 0.74f, t));
-    }
-    else if (t < 0.91f) {
-        color = LerpColor(c4, c5, SmoothStep(0.74f, 0.91f, t));
-    }
-    else {
-        color = LerpColor(c5, c6, SmoothStep(0.91f, 1.00f, t));
-    }
+    if (t < 0.14f) color = LerpColor(c0, c1, SmoothStep(0.00f, 0.14f, t));
+    else if (t < 0.34f) color = LerpColor(c1, c2, SmoothStep(0.14f, 0.34f, t));
+    else if (t < 0.54f) color = LerpColor(c2, c3, SmoothStep(0.34f, 0.54f, t));
+    else if (t < 0.74f) color = LerpColor(c3, c4, SmoothStep(0.54f, 0.74f, t));
+    else if (t < 0.91f) color = LerpColor(c4, c5, SmoothStep(0.74f, 0.91f, t));
+    else color = LerpColor(c5, c6, SmoothStep(0.91f, 1.00f, t));
 
     float brightness = 1.35f;
-
     color.x = fminf(color.x * brightness, 1.0f);
     color.y = fminf(color.y * brightness, 1.0f);
     color.z = fminf(color.z * brightness, 1.0f);
@@ -115,6 +95,48 @@ __device__ void GetHeatmapColor(float temp, float minTemp, float maxTemp, float*
     *g = color.y;
     *b = color.z;
 }
+
+
+static __forceinline__ __device__ unsigned int tea(unsigned int val0, unsigned int val1) {
+    unsigned int v0 = val0;
+    unsigned int v1 = val1;
+    unsigned int s0 = 0;
+    for (unsigned int n = 0; n < 16; n++) {
+        s0 += 0x9e3779b9;
+        v0 += ((v1 << 4) + 0xa341316c) ^ (v1 + s0) ^ ((v1 >> 5) + 0xc8013ea4);
+        v1 += ((v0 << 4) + 0xad90777d) ^ (v0 + s0) ^ ((v0 >> 5) + 0x7e95761e);
+    }
+    return v0;
+}
+
+static __forceinline__ __device__ unsigned int lcg(unsigned int& prev) {
+    const unsigned int LCG_A = 1664525u;
+    const unsigned int LCG_C = 1013904223u;
+    prev = (LCG_A * prev + LCG_C);
+    return prev & 0x00FFFFFF;
+}
+
+static __forceinline__ __device__ float rnd(unsigned int& prev) {
+    return ((float)lcg(prev) / (float)0x01000000);
+}
+
+static __forceinline__ __device__ void build_onb(const float3& n, float3& b1, float3& b2) {
+    const float sign = (n.z >= 0.0f) ? 1.0f : -1.0f;
+    const float a = -1.0f / (sign + n.z);
+    const float b = n.x * n.y * a;
+    b1 = make_float3(1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x);
+    b2 = make_float3(b, sign + n.y * n.y * a, -n.y);
+}
+
+static __forceinline__ __device__ float3 cosine_sample_hemisphere(float u1, float u2) {
+    float r = sqrtf(u1);
+    float phi = 2.0f * 3.14159265359f * u2;
+    float x = r * cosf(phi);
+    float y = r * sinf(phi);
+    float z = sqrtf(fmaxf(0.0f, 1.0f - x * x - y * y));
+    return make_float3(x, y, z);
+}
+
 
 extern "C" __global__ void __miss__ms() {
     optixSetPayload_0(0xFFFFFFFFu);
@@ -150,45 +172,125 @@ extern "C" __global__ void __raygen__rg() {
         (p0.z + p1.z + p2.z) * 0.3333333333f
     );
 
-    float mu = fmaxf(0.0f, Dot3(normal, params.sunDir));
+    float epsilon = params.rayEpsilon;
+    float3 rayOrigin = make_float3(
+        position.x + normal.x * epsilon,
+        position.y + normal.y * epsilon,
+        position.z + normal.z * epsilon
+    );
 
-    unsigned int payload0 = 0xFFFFFFFFu;
+    float mu = fmaxf(0.0f, Dot3(normal, params.sunDir));
+    unsigned int payload_shadow = 0xFFFFFFFFu;
 
     if (mu > 0.0f) {
-        float epsilon = 0.1f;
-        float3 rayOrigin = make_float3(
-            position.x + normal.x * epsilon,
-            position.y + normal.y * epsilon,
-            position.z + normal.z * epsilon
+        optixTrace(
+            params.handle,
+            rayOrigin,
+            params.sunDir,
+            epsilon,
+            1.0e16f,
+            0.0f,
+            OptixVisibilityMask(255),
+            OPTIX_RAY_FLAG_DISABLE_ANYHIT | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
+            0, 1, 0,
+            payload_shadow
         );
+    }
+
+    float shadow = (mu > 0.0f && payload_shadow == 0xFFFFFFFFu) ? 1.0f : 0.0f;
+    float solarFlux = params.solarConstant / (params.rh_AU * params.rh_AU);
+    float directSolarAbsorbed = (1.0f - params.albedo) * solarFlux * mu * shadow;
+
+    float4 prevTempData = params.prevTemperature[v0];
+    float prev_T = prevTempData.x;
+
+    unsigned int rng_state = tea(params.indirectSeed, launchIndex.x);
+
+    float3 b1, b2;
+    build_onb(normal, b1, b2);
+
+    int numSamples = params.indirectSamples > 1 ? params.indirectSamples : 1;
+    const float sigma = 5.670374419e-8f;
+
+    float indirectIRReceived = 0.0f;
+    float indirectSolarReceived = 0.0f;
+
+    for (int i = 0; i < numSamples; ++i) {
+        float r1 = rnd(rng_state);
+        float r2 = rnd(rng_state);
+
+        float3 localDir = cosine_sample_hemisphere(r1, r2);
+
+        float3 worldDir = make_float3(
+            localDir.x * b1.x + localDir.y * b2.x + localDir.z * normal.x,
+            localDir.x * b1.y + localDir.y * b2.y + localDir.z * normal.y,
+            localDir.x * b1.z + localDir.y * b2.z + localDir.z * normal.z
+        );
+
+        unsigned int hit_payload = 0xFFFFFFFFu;
 
         optixTrace(
             params.handle,
-            rayOrigin,   
-            params.sunDir,
-            0.1f,       
-            1.0e16f,    
+            rayOrigin,
+            worldDir,
+            params.rayEpsilon,
+            1.0e16f,
             0.0f,
             OptixVisibilityMask(255),
             OPTIX_RAY_FLAG_DISABLE_ANYHIT | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
             0,
             1,
             0,
-            payload0
+            hit_payload
         );
+
+        if (hit_payload != 0xFFFFFFFFu) {
+            int hit_v0 = hit_payload * 3;
+            float4 hitTempData = params.prevTemperature[hit_v0];
+
+            float hitT = hitTempData.x;
+            float hitDirectSolarAbsorbed = hitTempData.y;
+
+            float hitIREmitted = params.emissivity * sigma * hitT * hitT * hitT * hitT;
+            float hitSolarReflected = (params.albedo / fmaxf(1.0f - params.albedo, 1.0e-6f)) * hitDirectSolarAbsorbed;
+
+            indirectIRReceived += hitIREmitted;
+            indirectSolarReceived += hitSolarReflected;
+        }
     }
 
-    float shadow = (mu > 0.0f && payload0 == 0xFFFFFFFFu) ? 1.0f : 0.0f;
+    indirectIRReceived /= (float)numSamples;
+    indirectSolarReceived /= (float)numSamples;
 
-    float solarFlux = params.solarConstant / (params.rh_AU * params.rh_AU);
-    float absorbedFlux = (1.0f - params.albedo) * solarFlux * mu * shadow;
+    float indirectSolarAbsorbed =
+        params.indirectSolarScale *
+        (1.0f - params.albedo) *
+        indirectSolarReceived;
 
-    float newTemp = SolveSurfaceTemperature(absorbedFlux);
+    float indirectIRAbsorbed =
+        params.indirectIRScale *
+        params.emissivity *
+        indirectIRReceived;
+
+    float indirectTotal = indirectSolarAbsorbed + indirectIRAbsorbed;
+    float maxIndirect = params.maxIndirectFractionOfSolarFlux * solarFlux;
+
+    indirectTotal = fminf(indirectTotal, maxIndirect);
+
+    float totalAbsorbedFlux = directSolarAbsorbed + indirectTotal;
+
+    float newTemp = SolveSurfaceTemperature(totalAbsorbedFlux, prev_T);
 
     float r, g, b;
     GetHeatmapColor(newTemp, params.minTemp, params.maxTempForColor, &r, &g, &b);
 
-    float4 finalTemp = make_float4(newTemp, absorbedFlux, 0.0f, 0.0f);
+    float4 finalTemp = make_float4(
+        newTemp,
+        directSolarAbsorbed,
+        totalAbsorbedFlux,
+        totalAbsorbedFlux - directSolarAbsorbed
+    );
+
     float4 finalColor = make_float4(r, g, b, 1.0f);
 
     params.vertices[v0].temperature = finalTemp;
