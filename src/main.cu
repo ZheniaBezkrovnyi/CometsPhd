@@ -35,7 +35,7 @@ extern "C" {
 }
 
 struct AppSettings {
-    std::string modelPath = "C:/Users/ebbez/source/repos/CometsPhd/data/Churyumov-Geras_SPC 2017 - 199k.ply";
+    std::string modelPath = "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Churyumov-Geras_SPC 2017 - 199k.ply";
     std::string ptxPath = "OptixKernels.ptx";
 
     struct {
@@ -88,7 +88,7 @@ struct AppSettings {
     struct {
         bool enabled = true;
         std::string outputDir = "capture_frames";
-        int maxFrames = 500;
+        int maxFrames = 50;
         int frameStride = 1;
     } screenshotCapture;
 };
