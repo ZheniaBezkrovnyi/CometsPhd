@@ -27,6 +27,8 @@
 #include "Core/Timer.h"
 #include "Shaders/OptixParams.h"
 
+#include "Utils/ScreenshotCapture.h"
+
 extern "C" {
     __declspec(dllexport) unsigned long NvOptimusEnablement = 0x00000001;
     __declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
@@ -51,8 +53,7 @@ struct AppSettings {
     } camera;
 
     struct {
-        double fixedDt = 300.0;
-        double timeScale = 3600.0;
+        double timeScale = 300.0;
         double rotationPeriodHours = 12.0;
         double rh_AU = 1.3;
     } physics;
@@ -65,7 +66,7 @@ struct AppSettings {
         float minTemp = 40.0f;
         float maxTempForColor = 230.0f;
 
-        int indirectSamples = 16;
+        int indirectSamples = 256;
         unsigned int indirectSeed = 1337u;
         float indirectSolarScale = 0.15f;
         float indirectIRScale = 0.05f;
@@ -83,6 +84,13 @@ struct AppSettings {
         bool cudaErrorChecks = false;
         bool syncAfterKernels = false;
     } diagnostics;
+
+    struct {
+        bool enabled = true;
+        std::string outputDir = "capture_frames";
+        int maxFrames = 500;
+        int frameStride = 1;
+    } screenshotCapture;
 };
 
 template <typename T>
@@ -617,6 +625,8 @@ void RunSimulationLoop(AppContext& ctx) {
     double previousRealTime = glfwGetTime();
     unsigned int frameCount = 0;
 
+    ScreenshotCaptureState screenshotState;
+
     while (!glfwWindowShouldClose(ctx.window)) {
         glfwPollEvents();
 
@@ -728,6 +738,17 @@ void RunSimulationLoop(AppContext& ctx) {
         glBindBuffer(GL_ARRAY_BUFFER, ctx.vbo);
         glDrawArrays(GL_TRIANGLES, 0, ctx.totalVertices);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        CaptureScreenshotIfNeeded(
+            ctx.config.screenshotCapture.outputDir,
+            ctx.config.screenshotCapture.enabled,
+            ctx.config.screenshotCapture.maxFrames,
+            ctx.config.screenshotCapture.frameStride,
+            screenshotState,
+            frameCount,
+            width,
+            height
+        );
 
         glfwSwapBuffers(ctx.window);
 

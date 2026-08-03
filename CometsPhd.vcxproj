@@ -30,9 +30,11 @@
     <ClCompile Include="src\Physics\Particle.cpp" />
     <ClCompile Include="src\Physics\ParticleSystem.cpp" />
     <ClCompile Include="src\Physics\Sun.cpp" />
+    <ClCompile Include="src\Utils\ScreenshotCapture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\Core\PhysicsConsts.h" />
+    <ClInclude Include="src\External\stb_image_write.h" />
     <ClInclude Include="src\Geometry\CometModel.h" />
     <ClInclude Include="src\Geometry\Geometry.h" />
     <ClInclude Include="src\Geometry\MeshTriangle.h" />
@@ -42,10 +44,16 @@
     <ClInclude Include="src\Physics\Particle.h" />
     <ClInclude Include="src\Physics\ParticleSystem.h" />
     <ClInclude Include="src\Physics\Sun.h" />
+    <ClInclude Include="src\Shaders\OptixParams.h" />
+    <ClInclude Include="src\Utils\ScreenshotCapture.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="data\plyexample.ply" />
+    <None Include="src\Shaders\OptixKernels.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="CMakeLists.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>

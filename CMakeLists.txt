@@ -15,10 +15,11 @@ find_package(glfw3 CONFIG REQUIRED)
 find_package(GLEW REQUIRED)
 find_package(glm CONFIG REQUIRED)
 
-file(GLOB_RECURSE SOURCES 
-    "src/*.cpp" 
-    "src/*.cu" 
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
+    "src/*.cpp"
+    "src/*.cu"
     "src/*.h"
+    "src/*.hpp"
 )
 
 set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/OptixKernels.cu" PROPERTIES HEADER_FILE_ONLY TRUE)
