@@ -16,4 +16,7 @@ namespace PhysicsConsts {
     constexpr double AU_METERS = 1.496e11;
     constexpr double Albedo = 0.04;
     constexpr double Emissivity = 0.95;
+
+    constexpr double SECONDS_PER_DAY = 86400.0;
+    constexpr double SECONDS_PER_HOUR = 3600.0;
 }

@@ -20,9 +20,21 @@ struct AppSettings {
     } camera;
 
     struct {
-        double timeScale = 300.0;
-        double rotationPeriodHours = 12.0;
-        double rh_AU = 1.3;
+        double timeScale = 86400.0; // 1 second = 1 day
+        double rotationPeriodHours = 12.4;
+
+        double startJulianDate = 2457248.5; // August 2015 (Perihelion 67P)
+
+        struct {
+            double a = 3.463;
+            double e = 0.641;
+            double i = 7.04;
+            double Omega = 50.14;
+            double w = 12.78;
+            double M0 = 0.0;
+            double epoch = 2457248.5;
+        } cometOrbit;
+
     } physics;
 
     struct {

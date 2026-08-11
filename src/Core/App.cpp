@@ -8,6 +8,17 @@
 App::App() {
     glContext = std::make_unique<GLContext>();
     optixRenderer = std::make_unique<OptixRenderer>();
+
+    KeplerianElements cometElems = {
+        config.physics.cometOrbit.a,
+        config.physics.cometOrbit.e,
+        config.physics.cometOrbit.i,
+        config.physics.cometOrbit.Omega,
+        config.physics.cometOrbit.w,
+        config.physics.cometOrbit.M0,
+        config.physics.cometOrbit.epoch
+    };
+    cometBody = OrbitalBody(cometElems);
 }
 
 App::~App() {
@@ -59,6 +70,8 @@ bool App::Init() {
     if (hostVertices.empty()) { std::cerr << "Failed: Model is empty or PLY path is wrong!" << std::endl; return false; }
 
     totalVertices = hostVertices.size();
+
+    simTime.Init(config.physics.timeScale, config.physics.startJulianDate);
 
     glGenBuffers(1, &vbo);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -120,8 +133,30 @@ void App::Run() {
 }
 
 void App::Update(double dt) {
-    simulationTime += dt * config.physics.timeScale;
+    simTime.Advance(dt);
 
+    UpdateTransformations();
+    RunOptixSimulation();
+}
+
+void App::Draw() {
+    RenderOpenGL();
+}
+
+void App::UpdateTransformations() {
+    glm::dvec3 heliocentricPosAU = cometBody.CalculatePosition(simTime.GetCurrentJD());
+    current_rh_AU = glm::length(heliocentricPosAU);
+    glm::dvec3 dirToSunWorld = glm::normalize(-heliocentricPosAU);
+
+    double rotationPeriodSeconds = config.physics.rotationPeriodHours * PhysicsConsts::SECONDS_PER_HOUR;
+    double rotationSpeed = 2.0 * PhysicsConsts::PI / rotationPeriodSeconds;
+    current_Angle = (float)fmod(simTime.GetElapsedSeconds() * rotationSpeed, 2.0 * PhysicsConsts::PI);
+
+    glm::mat3 invRot = glm::mat3(glm::rotate(glm::mat4(1.0f), -current_Angle, glm::vec3(0.0f, 1.0f, 0.0f)));
+    current_sunLocalDir = invRot * glm::vec3(dirToSunWorld);
+}
+
+void App::RunOptixSimulation() {
     InteropVertex* d_vertices;
     size_t num_bytes;
     cudaGraphicsMapResources(1, &cuda_vbo_resource, 0);
@@ -129,19 +164,14 @@ void App::Update(double dt) {
 
     optixRenderer->CopyPreviousTemperatures(d_vertices, d_prevTemperature, totalVertices);
 
-    double rotationPeriodSeconds = config.physics.rotationPeriodHours * 3600.0;
-    double rotationSpeed = 2.0 * PhysicsConsts::PI / rotationPeriodSeconds;
-    float currentAngle = (float)fmod(simulationTime * rotationSpeed, 2.0 * PhysicsConsts::PI);
-
-    glm::mat3 invRot = glm::mat3(glm::rotate(glm::mat4(1.0f), -currentAngle, glm::vec3(0.0f, 1.0f, 0.0f)));
-    glm::vec3 sunLocalDir = glm::normalize(invRot * glm::vec3(1.0f, 0.0f, 0.0f));
-
     OptixParams params = {};
     params.vertices = d_vertices;
     params.prevTemperature = d_prevTemperature;
     params.numVertices = totalVertices;
-    params.sunDir = make_float3(sunLocalDir.x, sunLocalDir.y, sunLocalDir.z);
-    params.rh_AU = (float)config.physics.rh_AU;
+
+    params.sunDir = make_float3(current_sunLocalDir.x, current_sunLocalDir.y, current_sunLocalDir.z);
+    params.rh_AU = (float)current_rh_AU;
+
     params.solarConstant = config.thermal.solarConstant;
     params.albedo = config.thermal.albedo;
     params.emissivity = config.thermal.emissivity;
@@ -161,17 +191,13 @@ void App::Update(double dt) {
     cudaGraphicsUnmapResources(1, &cuda_vbo_resource, 0);
 }
 
-void App::Draw() {
+void App::RenderOpenGL() {
     int width = glContext->GetWidth();
     int height = glContext->GetHeight();
 
     glViewport(0, 0, width, height);
     glClearColor(config.camera.clearColor[0], config.camera.clearColor[1], config.camera.clearColor[2], config.camera.clearColor[3]);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    double rotationPeriodSeconds = config.physics.rotationPeriodHours * 3600.0;
-    double rotationSpeed = 2.0 * PhysicsConsts::PI / rotationPeriodSeconds;
-    float currentAngle = (float)fmod(simulationTime * rotationSpeed, 2.0 * PhysicsConsts::PI);
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -184,7 +210,7 @@ void App::Draw() {
         glm::vec3(0, maxCoord * config.camera.heightMultiplier, maxCoord * config.camera.distanceMultiplier),
         glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)
     );
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), currentAngle, glm::vec3(0, 1, 0));
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), current_Angle, glm::vec3(0, 1, 0));
     glLoadMatrixf(glm::value_ptr(view * model));
 
     glBindBuffer(GL_ARRAY_BUFFER, vbo);

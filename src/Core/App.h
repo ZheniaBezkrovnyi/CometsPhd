@@ -4,6 +4,7 @@
 #include "Geometry/Geometry.h"
 #include "Core/AppSettings.h"
 #include "Core/Timer.h"
+#include "Physics/OrbitalBody.h"
 #include "Utils/ScreenshotCapture.h"
 #include <cuda_gl_interop.h>
 #include <vector>
@@ -22,6 +23,10 @@ private:
     void Draw();
     std::vector<InteropVertex> LoadAndPrepareGeometry(const std::string& filepath, float& outMaxCoord, float baseTemp);
 
+    void UpdateTransformations();
+    void RunOptixSimulation();
+    void RenderOpenGL();
+
     AppSettings config;
     std::unique_ptr<GLContext> glContext;
     std::unique_ptr<OptixRenderer> optixRenderer;
@@ -36,6 +41,11 @@ private:
     int totalVertices = 0;
     float maxCoord = 0.0f;
 
-    double simulationTime = 0.0;
+    SimulationTime simTime;
+    OrbitalBody cometBody;
     unsigned int frameCount = 0;
+
+    double current_rh_AU = 0.0;
+    glm::vec3 current_sunLocalDir = glm::vec3(0.0f);
+    float current_Angle = 0.0f;
 };
