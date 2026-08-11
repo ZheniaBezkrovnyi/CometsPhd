@@ -1,0 +1,16 @@
+{
+    "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Churyumov-Geras_SPC 2017 - 199k.ply",
+    "physics": {
+        "timeScale": 860.0,
+        "startJulianDate": 2457248.5,
+        "cometOrbit": {
+            "a": 3.463,
+            "e": 0.641,
+            "i": 7.04
+        }
+    },
+    "thermal": {
+        "albedo": 0.04,
+        "activeFraction": 0.2
+    }
+}

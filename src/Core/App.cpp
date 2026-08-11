@@ -1,11 +1,33 @@
 #include "App.h"
 #include <iostream>
+#include <filesystem>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include "IO/PLY.h"
 #include "Core/PhysicsConsts.h"
 
+namespace fs = std::filesystem;
+
 App::App() {
+    std::string configPath = "";
+    std::string configDir = "C:/Users/Yevhen/Projects/Univ/CometsPhd/Configs";
+
+    if (fs::exists(configDir) && fs::is_directory(configDir)) {
+        for (const auto& entry : fs::directory_iterator(configDir)) {
+            if (entry.is_regular_file() && entry.path().extension() == ".json") {
+                configPath = entry.path().string();
+                break;
+            }
+        }
+    }
+
+    if (!configPath.empty()) {
+        config.LoadFromJson(configPath);
+    }
+    else {
+        std::cerr << "[WARNING] No .json file found in '" << configDir << "' directory. Using hardcoded defaults.\n";
+    }
+
     glContext = std::make_unique<GLContext>();
     optixRenderer = std::make_unique<OptixRenderer>();
 
