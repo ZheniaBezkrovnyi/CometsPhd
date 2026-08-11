@@ -6,8 +6,9 @@ class Sun {
 public:
     glm::dvec3 position;
     double luminosity;
+    double solarConstant;
 
-    Sun(glm::dvec3 startPosition) : position(startPosition) {
+    Sun(glm::dvec3 startPosition, double solarConst) : position(startPosition), solarConstant(solarConst) {
         luminosity = 1.0;
     }
 
@@ -22,7 +23,7 @@ public:
     double GetSolarFlux(const glm::dvec3& point) const {
         double dist = GetDistanceFrom(point);
         double r_AU = dist / PhysicsConsts::AU_METERS;
-        if (r_AU < 1e-5) return PhysicsConsts::SolarConst;
-        return PhysicsConsts::SolarConst / (r_AU * r_AU);
+        if (r_AU < 1e-5) return solarConstant;
+        return solarConstant / (r_AU * r_AU);
     }
 };

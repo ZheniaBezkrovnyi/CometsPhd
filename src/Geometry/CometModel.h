@@ -41,7 +41,6 @@ public:
 
             triangles.emplace_back(p1, p2, p3);
         }
-        std::cout << "Model loaded: " << triangles.size() << " triangles.\n";
     }
 
     void SetTransform(glm::dvec3 pos, glm::dmat3 rot) {
@@ -49,7 +48,7 @@ public:
         currentRotation = rot;
     }
 
-    void UpdateSurfacePhysics(glm::dvec3 sunPositionWorld) {
+    void UpdateSurfacePhysics(glm::dvec3 sunPositionWorld, double solarConstant, double albedo, double emissivity) {
         totalGasProductionRate = 0.0;
 
         for (auto& tri : triangles) {
@@ -66,10 +65,9 @@ public:
             double effectiveCos = std::max(0.0, cosTheta);
 
             double r_h_AU = dist / PhysicsConsts::AU_METERS;
-            double E_input = (PhysicsConsts::SolarConst / (r_h_AU * r_h_AU))
-                * (1.0 - PhysicsConsts::Albedo) * effectiveCos;
+            double E_input = (solarConstant / (r_h_AU * r_h_AU)) * (1.0 - albedo) * effectiveCos;
 
-            tri.temperature = SolveFaceTemperature(E_input);
+            tri.temperature = SolveFaceTemperature(E_input, emissivity);
 
             double P_vap = 3.56e12 * std::exp(-6141.0 / tri.temperature);
             double sqrtT = std::sqrt(tri.temperature);
@@ -77,9 +75,7 @@ public:
             double denominator = std::sqrt(2 * PhysicsConsts::PI * PhysicsConsts::m_gas_H2O * PhysicsConsts::kB) * sqrtT;
             tri.gasFluxZ = P_vap / denominator;
 
-            tri.localGasVelocity = std::sqrt((8.0 * PhysicsConsts::kB * tri.temperature)
-                / (PhysicsConsts::PI * PhysicsConsts::m_gas_H2O));
-
+            tri.localGasVelocity = std::sqrt((8.0 * PhysicsConsts::kB * tri.temperature) / (PhysicsConsts::PI * PhysicsConsts::m_gas_H2O));
             tri.gasProductionQ = tri.gasFluxZ * PhysicsConsts::m_gas_H2O * tri.area;
 
             totalGasProductionRate += tri.gasProductionQ;
@@ -87,22 +83,18 @@ public:
     }
 
 private:
-    double SolveFaceTemperature(double EnergyInput) {
+    double SolveFaceTemperature(double EnergyInput, double emissivity) {
         double E_avail = EnergyInput;
 
         if (E_avail <= 1e-6) return 40.0;
 
         double T = 180.0;
-        double epsilon = PhysicsConsts::Emissivity;
-
         double activeFraction = 1.0;
 
         const double sigma = PhysicsConsts::Sigma;
         const double L_sub = PhysicsConsts::L_sub;
         const double m_gas = PhysicsConsts::m_gas_H2O;
         const double kB = PhysicsConsts::kB;
-        const double PI = PhysicsConsts::PI;
-
         const double sqrt_const = 1.6113e-24;
 
         for (int i = 0; i < 20; i++) {
@@ -112,12 +104,11 @@ private:
             double numFlux = (activeFraction * P_vap) / (sqrt_const * sqrtT);
             double massFlux = numFlux * m_gas;
 
-            double Rad = epsilon * sigma * (T * T * T * T);
+            double Rad = emissivity * sigma * (T * T * T * T);
             double Sub = L_sub * massFlux;
             double F = Rad + Sub - E_avail;
 
-            double dRad = 4.0 * epsilon * sigma * (T * T * T);
-
+            double dRad = 4.0 * emissivity * sigma * (T * T * T);
             double dlnZ = 6141.0 / (T * T) - 0.5 / T;
             double dSub = Sub * dlnZ;
             double dF = dRad + dSub;

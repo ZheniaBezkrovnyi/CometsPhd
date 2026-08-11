@@ -1,13 +1,13 @@
 #pragma once
 #include "GLContext.h"
 #include "Rendering/OptixRenderer.h"
+#include "Rendering/Camera.h"
+#include "Rendering/GLMesh.h"
 #include "Geometry/Geometry.h"
 #include "Core/AppSettings.h"
 #include "Core/Timer.h"
-#include "Physics/OrbitalBody.h"
+#include "Physics/SpaceScene.h"
 #include "Utils/ScreenshotCapture.h"
-#include <cuda_gl_interop.h>
-#include <vector>
 #include <memory>
 
 class App {
@@ -20,10 +20,6 @@ public:
 
 private:
     void Update(double dt);
-    void Draw();
-    std::vector<InteropVertex> LoadAndPrepareGeometry(const std::string& filepath, float& outMaxCoord, float baseTemp);
-
-    void UpdateTransformations();
     void RunOptixSimulation();
     void RenderOpenGL();
 
@@ -33,19 +29,12 @@ private:
     FPSCounter fpsCounter;
     ScreenshotCaptureState screenshotState;
 
-    GLuint vbo = 0;
-    cudaGraphicsResource* cuda_vbo_resource = nullptr;
+    Camera camera;
+    GLMesh cometMesh;
     float4* d_prevTemperature = nullptr;
-
-    std::vector<InteropVertex> hostVertices;
-    int totalVertices = 0;
     float maxCoord = 0.0f;
 
     SimulationTime simTime;
-    OrbitalBody cometBody;
+    SpaceScene spaceScene;
     unsigned int frameCount = 0;
-
-    double current_rh_AU = 0.0;
-    glm::vec3 current_sunLocalDir = glm::vec3(0.0f);
-    float current_Angle = 0.0f;
 };
