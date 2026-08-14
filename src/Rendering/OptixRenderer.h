@@ -15,7 +15,9 @@ public:
     bool Init(const AppSettings& config);
     bool BuildGAS(CUdeviceptr d_vertices, int numVertices);
     bool BuildPipeline(const std::string& ptxPath);
-    void Render(OptixParams& hostParams, int numTriangles);
+
+    void RenderThermal(OptixParams& hostParams, int numTriangles);
+    float RenderPhotometry(OptixParams& hostParams, int numTriangles);
 
     void CopyPreviousTemperatures(const InteropVertex* d_vertices, float4* d_prevTemperature, int numVertices);
 
@@ -28,10 +30,15 @@ private:
 
     OptixModule module = nullptr;
     OptixPipeline pipeline = nullptr;
-    OptixProgramGroup raygenPG = nullptr;
+
+    OptixProgramGroup raygenThermalPG = nullptr;
+    OptixProgramGroup raygenPhotometryPG = nullptr;
     OptixProgramGroup missPG = nullptr;
     OptixProgramGroup hitgroupPG = nullptr;
-    OptixShaderBindingTable sbt = {};
+
+    OptixShaderBindingTable sbtThermal = {};
+    OptixShaderBindingTable sbtPhotometry = {};
 
     CUdeviceptr d_params = 0;
+    float* d_totalVisibleArea = nullptr;
 };

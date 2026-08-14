@@ -12,6 +12,8 @@ struct OptixParams {
     int numVertices;
 
     float3 sunDir;
+    float3 earthDir;
+    float* d_totalVisibleArea;
 
     float rh_AU;
     float solarConstant;

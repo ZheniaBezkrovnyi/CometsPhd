@@ -2,6 +2,7 @@
 #include "IO/PLY.h"
 #include <glm/glm.hpp>
 #include <algorithm>
+#include <cuda_runtime.h> 
 
 std::vector<InteropVertex> ModelLoader::LoadPLY(const std::string& filepath, float& outMaxCoord, float baseTemp) {
     PLY plyModel(filepath);

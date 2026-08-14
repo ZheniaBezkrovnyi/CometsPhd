@@ -25,9 +25,9 @@ struct AppSettings {
     } camera;
 
     struct {
-        double timeScale = 86400.0; // 1 second = 1 day
+        double timeScale = 86400.0;
         double rotationPeriodHours = 12.4;
-        double startJulianDate = 2457248.5; // August 2015 (Perihelion 67P)
+        double startJulianDate = 2457248.5;
 
         struct {
             double a = 3.463;
@@ -38,6 +38,16 @@ struct AppSettings {
             double M0 = 0.0;
             double epoch = 2457248.5;
         } cometOrbit;
+
+        struct {
+            double a = 1.00000011;
+            double e = 0.01671022;
+            double i = 0.00005;
+            double Omega = -11.26064;
+            double w = 102.94719;
+            double M0 = 100.46435;
+            double epoch = 2451545.0;
+        } earthOrbit;
 
     } physics;
 
@@ -121,6 +131,17 @@ struct AppSettings {
                 if (orb.contains("w")) physics.cometOrbit.w = orb["w"];
                 if (orb.contains("M0")) physics.cometOrbit.M0 = orb["M0"];
                 if (orb.contains("epoch")) physics.cometOrbit.epoch = orb["epoch"];
+            }
+
+            if (phys.contains("earthOrbit")) {
+                auto& orb = phys["earthOrbit"];
+                if (orb.contains("a")) physics.earthOrbit.a = orb["a"];
+                if (orb.contains("e")) physics.earthOrbit.e = orb["e"];
+                if (orb.contains("i")) physics.earthOrbit.i = orb["i"];
+                if (orb.contains("Omega")) physics.earthOrbit.Omega = orb["Omega"];
+                if (orb.contains("w")) physics.earthOrbit.w = orb["w"];
+                if (orb.contains("M0")) physics.earthOrbit.M0 = orb["M0"];
+                if (orb.contains("epoch")) physics.earthOrbit.epoch = orb["epoch"];
             }
         }
 

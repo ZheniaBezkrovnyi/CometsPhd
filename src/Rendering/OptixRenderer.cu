@@ -6,7 +6,6 @@
 #include <optix_function_table_definition.h>
 #include <optix_stack_size.h>
 
-
 __global__ void CopyTemperatureKernel(const InteropVertex* vertices, float4* prevTemperature, int numVertices) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= numVertices) return;
@@ -36,17 +35,20 @@ std::string ReadPTX(const std::string& filepath) {
 
 OptixRenderer::~OptixRenderer() {
     if (d_params) cudaFree(reinterpret_cast<void*>(d_params));
+    if (d_totalVisibleArea) cudaFree(d_totalVisibleArea);
     if (d_gas_output_buffer) cudaFree(reinterpret_cast<void*>(d_gas_output_buffer));
     if (pipeline) optixPipelineDestroy(pipeline);
-    if (raygenPG) optixProgramGroupDestroy(raygenPG);
+    if (raygenThermalPG) optixProgramGroupDestroy(raygenThermalPG);
+    if (raygenPhotometryPG) optixProgramGroupDestroy(raygenPhotometryPG);
     if (missPG) optixProgramGroupDestroy(missPG);
     if (hitgroupPG) optixProgramGroupDestroy(hitgroupPG);
     if (module) optixModuleDestroy(module);
     if (optixContext) optixDeviceContextDestroy(optixContext);
 
-    if (sbt.raygenRecord) cudaFree(reinterpret_cast<void*>(sbt.raygenRecord));
-    if (sbt.missRecordBase) cudaFree(reinterpret_cast<void*>(sbt.missRecordBase));
-    if (sbt.hitgroupRecordBase) cudaFree(reinterpret_cast<void*>(sbt.hitgroupRecordBase));
+    if (sbtThermal.raygenRecord) cudaFree(reinterpret_cast<void*>(sbtThermal.raygenRecord));
+    if (sbtPhotometry.raygenRecord) cudaFree(reinterpret_cast<void*>(sbtPhotometry.raygenRecord));
+    if (sbtThermal.missRecordBase) cudaFree(reinterpret_cast<void*>(sbtThermal.missRecordBase));
+    if (sbtThermal.hitgroupRecordBase) cudaFree(reinterpret_cast<void*>(sbtThermal.hitgroupRecordBase));
 }
 
 bool OptixRenderer::Init(const AppSettings& config) {
@@ -58,6 +60,7 @@ bool OptixRenderer::Init(const AppSettings& config) {
     if (optixDeviceContextCreate(cuCtx, &options, &optixContext) != OPTIX_SUCCESS) return false;
 
     cudaMalloc(reinterpret_cast<void**>(&d_params), sizeof(OptixParams));
+    cudaMalloc((void**)&d_totalVisibleArea, sizeof(float));
     return true;
 }
 
@@ -141,11 +144,17 @@ bool OptixRenderer::BuildPipeline(const std::string& ptxPath) {
 
     OptixProgramGroupOptions pgOptions = {};
 
-    OptixProgramGroupDesc rgDesc = {};
-    rgDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
-    rgDesc.raygen.module = module;
-    rgDesc.raygen.entryFunctionName = "__raygen__rg";
-    if (optixProgramGroupCreate(optixContext, &rgDesc, 1, &pgOptions, log, &sizeof_log, &raygenPG) != OPTIX_SUCCESS) return false;
+    OptixProgramGroupDesc rgThermalDesc = {};
+    rgThermalDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
+    rgThermalDesc.raygen.module = module;
+    rgThermalDesc.raygen.entryFunctionName = "__raygen__thermal";
+    if (optixProgramGroupCreate(optixContext, &rgThermalDesc, 1, &pgOptions, log, &sizeof_log, &raygenThermalPG) != OPTIX_SUCCESS) return false;
+
+    OptixProgramGroupDesc rgPhotometryDesc = {};
+    rgPhotometryDesc.kind = OPTIX_PROGRAM_GROUP_KIND_RAYGEN;
+    rgPhotometryDesc.raygen.module = module;
+    rgPhotometryDesc.raygen.entryFunctionName = "__raygen__photometry";
+    if (optixProgramGroupCreate(optixContext, &rgPhotometryDesc, 1, &pgOptions, log, &sizeof_log, &raygenPhotometryPG) != OPTIX_SUCCESS) return false;
 
     OptixProgramGroupDesc msDesc = {};
     msDesc.kind = OPTIX_PROGRAM_GROUP_KIND_MISS;
@@ -159,12 +168,12 @@ bool OptixRenderer::BuildPipeline(const std::string& ptxPath) {
     hgDesc.hitgroup.entryFunctionNameCH = "__closesthit__ch";
     if (optixProgramGroupCreate(optixContext, &hgDesc, 1, &pgOptions, log, &sizeof_log, &hitgroupPG) != OPTIX_SUCCESS) return false;
 
-    OptixProgramGroup programGroups[] = { raygenPG, missPG, hitgroupPG };
+    OptixProgramGroup programGroups[] = { raygenThermalPG, raygenPhotometryPG, missPG, hitgroupPG };
     OptixPipelineLinkOptions pipelineLinkOptions = {};
     pipelineLinkOptions.maxTraceDepth = 1;
 
     if (optixPipelineCreate(optixContext, &pipelineCompileOptions, &pipelineLinkOptions,
-        programGroups, 3, log, &sizeof_log, &pipeline) != OPTIX_SUCCESS) return false;
+        programGroups, 4, log, &sizeof_log, &pipeline) != OPTIX_SUCCESS) return false;
 
     if (optixPipelineSetStackSize(pipeline, 2048, 2048, 2048, 1) != OPTIX_SUCCESS) return false;
 
@@ -172,12 +181,17 @@ bool OptixRenderer::BuildPipeline(const std::string& ptxPath) {
 }
 
 bool OptixRenderer::BuildSBT() {
-    CUdeviceptr d_raygen = 0, d_miss = 0, d_hitgroup = 0;
+    CUdeviceptr d_raygenThermal = 0, d_raygenPhotometry = 0, d_miss = 0, d_hitgroup = 0;
 
-    RayGenSbtRecord rgSBT = {};
-    optixSbtRecordPackHeader(raygenPG, &rgSBT);
-    cudaMalloc(reinterpret_cast<void**>(&d_raygen), sizeof(RayGenSbtRecord));
-    cudaMemcpy(reinterpret_cast<void*>(d_raygen), &rgSBT, sizeof(RayGenSbtRecord), cudaMemcpyHostToDevice);
+    RayGenSbtRecord rgThermalSBT = {};
+    optixSbtRecordPackHeader(raygenThermalPG, &rgThermalSBT);
+    cudaMalloc(reinterpret_cast<void**>(&d_raygenThermal), sizeof(RayGenSbtRecord));
+    cudaMemcpy(reinterpret_cast<void*>(d_raygenThermal), &rgThermalSBT, sizeof(RayGenSbtRecord), cudaMemcpyHostToDevice);
+
+    RayGenSbtRecord rgPhotometrySBT = {};
+    optixSbtRecordPackHeader(raygenPhotometryPG, &rgPhotometrySBT);
+    cudaMalloc(reinterpret_cast<void**>(&d_raygenPhotometry), sizeof(RayGenSbtRecord));
+    cudaMemcpy(reinterpret_cast<void*>(d_raygenPhotometry), &rgPhotometrySBT, sizeof(RayGenSbtRecord), cudaMemcpyHostToDevice);
 
     MissSbtRecord msSBT = {};
     optixSbtRecordPackHeader(missPG, &msSBT);
@@ -189,13 +203,21 @@ bool OptixRenderer::BuildSBT() {
     cudaMalloc(reinterpret_cast<void**>(&d_hitgroup), sizeof(HitGroupSbtRecord));
     cudaMemcpy(reinterpret_cast<void*>(d_hitgroup), &hgSBT, sizeof(HitGroupSbtRecord), cudaMemcpyHostToDevice);
 
-    sbt.raygenRecord = d_raygen;
-    sbt.missRecordBase = d_miss;
-    sbt.missRecordStrideInBytes = sizeof(MissSbtRecord);
-    sbt.missRecordCount = 1;
-    sbt.hitgroupRecordBase = d_hitgroup;
-    sbt.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
-    sbt.hitgroupRecordCount = 1;
+    sbtThermal.raygenRecord = d_raygenThermal;
+    sbtThermal.missRecordBase = d_miss;
+    sbtThermal.missRecordStrideInBytes = sizeof(MissSbtRecord);
+    sbtThermal.missRecordCount = 1;
+    sbtThermal.hitgroupRecordBase = d_hitgroup;
+    sbtThermal.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
+    sbtThermal.hitgroupRecordCount = 1;
+
+    sbtPhotometry.raygenRecord = d_raygenPhotometry;
+    sbtPhotometry.missRecordBase = d_miss;
+    sbtPhotometry.missRecordStrideInBytes = sizeof(MissSbtRecord);
+    sbtPhotometry.missRecordCount = 1;
+    sbtPhotometry.hitgroupRecordBase = d_hitgroup;
+    sbtPhotometry.hitgroupRecordStrideInBytes = sizeof(HitGroupSbtRecord);
+    sbtPhotometry.hitgroupRecordCount = 1;
 
     return true;
 }
@@ -206,8 +228,21 @@ void OptixRenderer::CopyPreviousTemperatures(const InteropVertex* d_vertices, fl
     CopyTemperatureKernel << <gridSize, blockSize >> > (d_vertices, d_prevTemperature, numVertices);
 }
 
-void OptixRenderer::Render(OptixParams& hostParams, int numTriangles) {
+void OptixRenderer::RenderThermal(OptixParams& hostParams, int numTriangles) {
     hostParams.handle = gasHandle;
     cudaMemcpy(reinterpret_cast<void*>(d_params), &hostParams, sizeof(OptixParams), cudaMemcpyHostToDevice);
-    optixLaunch(pipeline, 0, d_params, sizeof(OptixParams), &sbt, numTriangles, 1, 1);
+    optixLaunch(pipeline, 0, d_params, sizeof(OptixParams), &sbtThermal, numTriangles, 1, 1);
+}
+
+float OptixRenderer::RenderPhotometry(OptixParams& hostParams, int numTriangles) {
+    cudaMemset(d_totalVisibleArea, 0, sizeof(float));
+    hostParams.d_totalVisibleArea = d_totalVisibleArea;
+    hostParams.handle = gasHandle;
+
+    cudaMemcpy(reinterpret_cast<void*>(d_params), &hostParams, sizeof(OptixParams), cudaMemcpyHostToDevice);
+    optixLaunch(pipeline, 0, d_params, sizeof(OptixParams), &sbtPhotometry, numTriangles, 1, 1);
+
+    float h_visibleArea = 0.0f;
+    cudaMemcpy(&h_visibleArea, d_totalVisibleArea, sizeof(float), cudaMemcpyDeviceToHost);
+    return h_visibleArea;
 }

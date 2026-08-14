@@ -1,6 +1,7 @@
 #include "App.h"
 #include <iostream>
 #include <filesystem>
+#include "Physics/Photometry.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "Geometry/ModelLoader.h"
 
@@ -93,12 +94,28 @@ void App::Run() {
 void App::Update(double dt) {
     simTime.Advance(dt);
     spaceScene.Update(simTime, config);
-    RunOptixSimulation();
-}
 
-void App::RunOptixSimulation() {
     InteropVertex* d_vertices = cometMesh.MapToCUDA();
 
+    RunOptixThermal(d_vertices);
+
+    if (frameCount % 60 == 0) {
+        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0; //  km^2 to m^2
+        double currentMag = Photometry::CalculateMagnitudeFromVisibleArea(
+			visibleArea,
+            spaceScene.GetCometHeliocentricDist(),
+            spaceScene.GetCometGeocentricDist(),
+            config.thermal.albedo
+        );
+        std::cout << "[Photometry] JD: " << simTime.GetCurrentJD()
+            << " | Visible Area: " << visibleArea << " m^2"
+            << " | Apparent Mag: " << currentMag << "\n";
+    }
+
+    cometMesh.UnmapFromCUDA();
+}
+
+void App::RunOptixThermal(InteropVertex* d_vertices) {
     optixRenderer->CopyPreviousTemperatures(d_vertices, d_prevTemperature, cometMesh.GetVertexCount());
 
     OptixParams params = {};
@@ -108,8 +125,8 @@ void App::RunOptixSimulation() {
 
     glm::vec3 sunDir = spaceScene.GetSunLocalDir();
     params.sunDir = make_float3(sunDir.x, sunDir.y, sunDir.z);
-    params.rh_AU = (float)spaceScene.GetCometHeliocentricDist();
 
+    params.rh_AU = (float)spaceScene.GetCometHeliocentricDist();
     params.solarConstant = config.thermal.solarConstant;
     params.albedo = config.thermal.albedo;
     params.emissivity = config.thermal.emissivity;
@@ -124,9 +141,23 @@ void App::RunOptixSimulation() {
     params.maxIndirectFractionOfSolarFlux = config.thermal.maxIndirectFractionOfSolarFlux;
     params.rayEpsilon = config.thermal.rayEpsilon;
 
-    optixRenderer->Render(params, cometMesh.GetVertexCount() / 3);
+    optixRenderer->RenderThermal(params, cometMesh.GetVertexCount() / 3);
+}
 
-    cometMesh.UnmapFromCUDA();
+float App::RunOptixPhotometry(InteropVertex* d_vertices) {
+    OptixParams params = {};
+    params.vertices = d_vertices;
+    params.numVertices = cometMesh.GetVertexCount();
+
+    glm::vec3 sunDir = spaceScene.GetSunLocalDir();
+    params.sunDir = make_float3(sunDir.x, sunDir.y, sunDir.z);
+
+    glm::vec3 earthDir = spaceScene.GetEarthLocalDir();
+    params.earthDir = make_float3(earthDir.x, earthDir.y, earthDir.z);
+
+    params.rayEpsilon = config.thermal.rayEpsilon;
+
+    return optixRenderer->RenderPhotometry(params, cometMesh.GetVertexCount() / 3);
 }
 
 void App::RenderOpenGL() {

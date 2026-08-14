@@ -96,7 +96,6 @@ __device__ void GetHeatmapColor(float temp, float minTemp, float maxTemp, float*
     *b = color.z;
 }
 
-
 static __forceinline__ __device__ unsigned int tea(unsigned int val0, unsigned int val1) {
     unsigned int v0 = val0;
     unsigned int v1 = val1;
@@ -137,7 +136,6 @@ static __forceinline__ __device__ float3 cosine_sample_hemisphere(float u1, floa
     return make_float3(x, y, z);
 }
 
-
 extern "C" __global__ void __miss__ms() {
     optixSetPayload_0(0xFFFFFFFFu);
 }
@@ -147,7 +145,7 @@ extern "C" __global__ void __closesthit__ch() {
     optixSetPayload_0(primitiveIndex);
 }
 
-extern "C" __global__ void __raygen__rg() {
+extern "C" __global__ void __raygen__thermal() {
     const uint3 launchIndex = optixGetLaunchIndex();
 
     int triIdx = static_cast<int>(launchIndex.x);
@@ -300,4 +298,67 @@ extern "C" __global__ void __raygen__rg() {
     params.vertices[v0].color = finalColor;
     params.vertices[v1].color = finalColor;
     params.vertices[v2].color = finalColor;
+}
+
+extern "C" __global__ void __raygen__photometry() {
+    const uint3 launchIndex = optixGetLaunchIndex();
+    int triIdx = static_cast<int>(launchIndex.x);
+    int numTriangles = params.numVertices / 3;
+
+    if (triIdx >= numTriangles) return;
+
+    int v0 = triIdx * 3;
+    int v1 = triIdx * 3 + 1;
+    int v2 = triIdx * 3 + 2;
+
+    float4 n0 = params.vertices[v0].normal;
+    float3 normal = make_float3(n0.x, n0.y, n0.z);
+
+    float cos_i = Dot3(normal, params.sunDir);
+    float cos_e = Dot3(normal, params.earthDir);
+
+    if (cos_i <= 0.0f || cos_e <= 0.0f) return;
+
+    float4 p0 = params.vertices[v0].position;
+    float4 p1 = params.vertices[v1].position;
+    float4 p2 = params.vertices[v2].position;
+
+    float3 position = make_float3(
+        (p0.x + p1.x + p2.x) * 0.3333333333f,
+        (p0.y + p1.y + p2.y) * 0.3333333333f,
+        (p0.z + p1.z + p2.z) * 0.3333333333f
+    );
+
+    float epsilon = params.rayEpsilon;
+    float3 rayOrigin = make_float3(
+        position.x + normal.x * epsilon,
+        position.y + normal.y * epsilon,
+        position.z + normal.z * epsilon
+    );
+
+    unsigned int payload_sun = 0xFFFFFFFFu;
+    optixTrace(
+        params.handle, rayOrigin, params.sunDir, epsilon, 1.0e16f, 0.0f,
+        OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
+        0, 1, 0, payload_sun
+    );
+
+    if (payload_sun != 0xFFFFFFFFu) return;
+
+    unsigned int payload_earth = 0xFFFFFFFFu;
+    optixTrace(
+        params.handle, rayOrigin, params.earthDir, epsilon, 1.0e16f, 0.0f,
+        OptixVisibilityMask(255), OPTIX_RAY_FLAG_DISABLE_ANYHIT | OPTIX_RAY_FLAG_TERMINATE_ON_FIRST_HIT,
+        0, 1, 0, payload_earth
+    );
+
+    if (payload_earth == 0xFFFFFFFFu) {
+        float3 e1 = make_float3(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
+        float3 e2 = make_float3(p2.x - p0.x, p2.y - p0.y, p2.z - p0.z);
+        float3 cross = make_float3(e1.y * e2.z - e1.z * e2.y, e1.z * e2.x - e1.x * e2.z, e1.x * e2.y - e1.y * e2.x);
+        float area = 0.5f * sqrtf(cross.x * cross.x + cross.y * cross.y + cross.z * cross.z);
+
+        float contribution = area * cos_i * cos_e;
+        atomicAdd(params.d_totalVisibleArea, contribution);
+    }
 }

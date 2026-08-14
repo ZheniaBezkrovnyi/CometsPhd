@@ -20,7 +20,8 @@ public:
 
 private:
     void Update(double dt);
-    void RunOptixSimulation();
+    void RunOptixThermal(InteropVertex* d_vertices);
+    float RunOptixPhotometry(InteropVertex* d_vertices);
     void RenderOpenGL();
 
     AppSettings config;

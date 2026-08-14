@@ -1,0 +1,70 @@
+{
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Churyumov-Geras_SPC 2017 - 96k.ply",
+  "ptxPath": "OptixKernels.ptx",
+  "window": {
+    "width": 1100,
+    "height": 1100
+  },
+  "camera": {
+    "fov": 60.0,
+    "heightMultiplier": 0.5,
+    "distanceMultiplier": 1.8,
+    "farPlaneMultiplier": 10.0,
+    "clearColor": [ 0.0, 0.0, 0.0, 1.0 ]
+  },
+  "physics": {
+    "timeScale": 2640.0,
+    "rotationPeriodHours": 12.4,
+    "startJulianDate": 2460705.5,
+    "cometOrbit": {
+      "a": 3.458455370739109,
+      "e": 0.6499421977885130,
+      "i": 3.869314198852129,
+      "Omega": 36.32205477398746,
+      "w": 22.19785491382674,
+      "M0": 181.4891311250904,
+      "epoch": 2460705.5
+    },
+    "earthOrbit": {
+      "a": 1.000006351991092,
+      "e": 0.01669829008180246,
+      "i": 0.003248050135173038,
+      "Omega": 174.4712892867145,
+      "w": 288.4490093009512,
+      "M0": 26.21190445180298,
+      "epoch": 2460705.5
+    }
+  },
+  "photometry": {
+    "absoluteMagnitudeH": 15.0,
+    "phaseCoefficientBeta": 0.04
+  },
+  "thermal": {
+    "solarConstant": 1361.0,
+    "albedo": 0.04,
+    "emissivity": 0.95,
+    "activeFraction": 1.0,
+    "minTemp": 40.0,
+    "maxTempForColor": 230.0,
+    "indirectSamples": 256,
+    "indirectSeed": 1337,
+    "indirectSolarScale": 0.15,
+    "indirectIRScale": 0.05,
+    "maxIndirectFractionOfSolarFlux": 0.1,
+    "rayEpsilon": 0.01
+  },
+  "diagnostics": {
+    "startupLogs": false,
+    "optixLogs": false,
+    "temperatureDebug": false,
+    "temperatureDebugIntervalFrames": 300,
+    "cudaErrorChecks": false,
+    "syncAfterKernels": false
+  },
+  "screenshotCapture": {
+    "enabled": true,
+    "outputDir": "capture_frames",
+    "maxFrames": 50,
+    "frameStride": 1
+  }
+}
