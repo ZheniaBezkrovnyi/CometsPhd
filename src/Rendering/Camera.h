@@ -7,7 +7,7 @@ public:
     void Init(const AppSettings& config);
     void ApplyClearColor() const;
     glm::mat4 GetProjectionMatrix(int width, int height, float maxCoord) const;
-    glm::mat4 GetViewMatrix(float currentAngle, float maxCoord) const;
+    glm::mat4 GetViewMatrix(float maxCoord) const;
 
 private:
     float fov = 60.0f;

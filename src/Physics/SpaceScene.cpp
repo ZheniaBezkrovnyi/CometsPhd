@@ -20,8 +20,9 @@ void SpaceScene::Update(const SimulationTime& simTime, const AppSettings& config
     UpdateHeliocentricKinematics(simTime);
     UpdateObserverMetrics();
     UpdateSpinKinematics(simTime, config);
-    UpdateLocalCoordinateSystems();
+    UpdateLocalCoordinateSystems(config);
 }
+
 
 void SpaceScene::UpdateHeliocentricKinematics(const SimulationTime& simTime) {
     current_cometPos = cometOrbit.CalculatePosition(simTime.GetCurrentJD());
@@ -49,11 +50,21 @@ void SpaceScene::UpdateSpinKinematics(const SimulationTime& simTime, const AppSe
     current_Angle = (float)std::fmod(simTime.GetElapsedSeconds() * rotationSpeed, 2.0 * PhysicsConsts::PI);
 }
 
-void SpaceScene::UpdateLocalCoordinateSystems() {
+void SpaceScene::UpdateLocalCoordinateSystems(const AppSettings& config) {
     glm::dvec3 dirToSunWorld = glm::normalize(-current_cometPos);
     glm::dvec3 dirToEarthWorld = glm::normalize(current_earthPos - current_cometPos);
 
-    glm::mat3 invRot = glm::mat3(glm::rotate(glm::mat4(1.0f), -current_Angle, glm::vec3(0.0f, 1.0f, 0.0f)));
+    float ra = glm::radians((float)config.physics.poleRA);
+    float dec = glm::radians((float)config.physics.poleDEC);
+
+    glm::mat4 spin = glm::rotate(glm::mat4(1.0f), current_Angle, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glm::mat4 tilt = glm::rotate(glm::mat4(1.0f), ra, glm::vec3(0.0f, 0.0f, 1.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(90.0f) - dec, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    current_modelMatrix = tilt * spin;
+
+    glm::mat3 invRot = glm::mat3(glm::inverse(current_modelMatrix));
 
     current_sunLocalDir = invRot * glm::vec3(dirToSunWorld);
     current_earthLocalDir = invRot * glm::vec3(dirToEarthWorld);

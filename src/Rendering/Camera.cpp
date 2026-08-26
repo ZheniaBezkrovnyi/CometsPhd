@@ -21,11 +21,9 @@ glm::mat4 Camera::GetProjectionMatrix(int width, int height, float maxCoord) con
     return glm::perspective(glm::radians(fov), (float)width / (float)height, 0.1f, maxCoord * farPlaneMultiplier);
 }
 
-glm::mat4 Camera::GetViewMatrix(float currentAngle, float maxCoord) const {
-    glm::mat4 view = glm::lookAt(
+glm::mat4 Camera::GetViewMatrix(float maxCoord) const {
+    return glm::lookAt(
         glm::vec3(0, maxCoord * heightMultiplier, maxCoord * distanceMultiplier),
         glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)
     );
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), currentAngle, glm::vec3(0, 1, 0));
-    return view * model;
 }

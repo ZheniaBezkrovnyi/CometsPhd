@@ -176,8 +176,11 @@ void App::RenderOpenGL() {
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glm::mat4 view = camera.GetViewMatrix(spaceScene.GetCometRotationAngle(), maxCoord);
-    glLoadMatrixf(glm::value_ptr(view));
+
+    glm::mat4 view = camera.GetViewMatrix(maxCoord);
+    glm::mat4 model = spaceScene.GetCometModelMatrix();
+    glm::mat4 modelView = view * model;
+    glLoadMatrixf(glm::value_ptr(modelView));
 
     cometMesh.BindAndDraw();
 }

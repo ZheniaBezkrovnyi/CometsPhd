@@ -27,6 +27,8 @@ struct AppSettings {
     struct {
         double timeScale = 86400.0;
         double rotationPeriodHours = 12.4;
+        double poleRA = 0.0;  
+        double poleDEC = 90.0;
         double startJulianDate = 2457248.5;
 
         struct {
@@ -120,6 +122,8 @@ struct AppSettings {
             auto& phys = j["physics"];
             if (phys.contains("timeScale")) physics.timeScale = phys["timeScale"];
             if (phys.contains("rotationPeriodHours")) physics.rotationPeriodHours = phys["rotationPeriodHours"];
+            if (phys.contains("poleRA")) physics.poleRA = phys["poleRA"];
+            if (phys.contains("poleDEC")) physics.poleDEC = phys["poleDEC"];
             if (phys.contains("startJulianDate")) physics.startJulianDate = phys["startJulianDate"];
 
             if (phys.contains("cometOrbit")) {
