@@ -9,6 +9,8 @@
 #include "Physics/SpaceScene.h"
 #include "Utils/ScreenshotCapture.h"
 #include <memory>
+#include <fstream>
+#include <iomanip>
 
 class App {
 public:
@@ -38,4 +40,6 @@ private:
     SimulationTime simTime;
     SpaceScene spaceScene;
     unsigned int frameCount = 0;
+
+    std::ofstream photometryLog;
 };

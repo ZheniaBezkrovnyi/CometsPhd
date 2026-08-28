@@ -64,3 +64,4 @@ add_custom_command(TARGET CometSimulator POST_BUILD
     "$<TARGET_FILE_DIR:CometSimulator>/OptixKernels.ptx"
     COMMENT "Copying PTX file to executable directory..."
 )
+

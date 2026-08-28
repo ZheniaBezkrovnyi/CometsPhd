@@ -76,7 +76,7 @@ Configs\Bennu.json
 ====================================================================================================
 
 {
-  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Bennu.ply",
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Bennu/Bennu.ply",
   "ptxPath": "OptixKernels.ptx",
   "window": {
     "width": 1100,
@@ -87,33 +87,40 @@ Configs\Bennu.json
     "heightMultiplier": 0.5,
     "distanceMultiplier": 1.8,
     "farPlaneMultiplier": 10.0,
-    "clearColor": [ 0.0, 0.0, 0.0, 1.0 ]
+    "clearColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
   },
   "physics": {
-    "timeScale": 2640.0,
-    "rotationPeriodHours": 12.4,
-    "startJulianDate": 2460705.5,
+    "timeScale": 3000000.0,
+    "rotationPeriodHours": 4.296057,
+    "poleRA": 85.6588,
+    "poleDEC": -60.1698,
+    "startJulianDate": 2461703.5,
     "cometOrbit": {
-      "a": 3.458455370739109,
-      "e": 0.6499421977885130,
-      "i": 3.869314198852129,
-      "Omega": 36.32205477398746,
-      "w": 22.19785491382674,
-      "M0": 181.4891311250904,
-      "epoch": 2460705.5
+      "a": 1.125999841394017,
+      "e": 0.2036966454186834,
+      "i": 6.032814270211719,
+      "Omega": 1.968873751992122,
+      "w": 66.40799693815983,
+      "M0": 274.0674659960083,
+      "epoch": 2461008.5
     },
     "earthOrbit": {
-      "a": 1.000006351991092,
-      "e": 0.01669829008180246,
-      "i": 0.003248050135173038,
-      "Omega": 174.4712892867145,
-      "w": 288.4490093009512,
-      "M0": 26.21190445180298,
-      "epoch": 2460705.5
+      "a": 0.9999926792316651,
+      "e": 0.01666455261234486,
+      "i": 0.003433257724763637,
+      "Omega": 174.9587520340257,
+      "w": 288.1112956977394,
+      "M0": 324.7065293115908,
+      "epoch": 2461008.5
     }
   },
   "photometry": {
-    "absoluteMagnitudeH": 15.0,
+    "absoluteMagnitudeH": 20.2,
     "phaseCoefficientBeta": 0.04
   },
   "thermal": {
@@ -141,7 +148,7 @@ Configs\Bennu.json
   "screenshotCapture": {
     "enabled": true,
     "outputDir": "capture_frames",
-    "maxFrames": 50,
+    "maxFrames": 300,
     "frameStride": 1
   }
 }
@@ -306,6 +313,101 @@ Configs\Other\config_67p_perihelion.json
     "frameStride": 1
   }
 }
+
+
+====================================================================================================
+Configs\Other\Epoc.json
+====================================================================================================
+
+{
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Epoc/Epoc.ply",
+  "ptxPath": "OptixKernels.ptx",
+  "window": {
+    "width": 1100,
+    "height": 1100
+  },
+  "camera": {
+    "fov": 60.0,
+    "heightMultiplier": 0.5,
+    "distanceMultiplier": 1.8,
+    "farPlaneMultiplier": 10.0,
+    "clearColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "physics": {
+    "timeScale": 1000.0,
+    "rotationPeriodHours": 5.27025528,
+    "poleRA": 11.29,
+    "poleDEC": 16.81,
+    "startJulianDate": 2458348.826355,
+    "cometOrbit": {
+      "a": 1.457904049191337,
+      "e": 0.2226318475563069,
+      "i": 10.82802209271655,
+      "Omega": 304.3156467998292,
+      "w": 178.7903296363619,
+      "M0": 266.1665970772865,
+      "epoch": 2458348.5
+    },
+    "earthOrbit": {
+      "a": 1.00011793,
+      "e": 0.01687291,
+      "i": 0.00200093,
+      "Omega": 177.21462,
+      "w": 284.5968,
+      "M0": 224.28822,
+      "epoch": 2458348.5
+    }
+  },
+  "photometry": {
+    "absoluteMagnitudeH": 10.4,
+    "phaseCoefficientBeta": 0.04
+  },
+  "thermal": {
+    "solarConstant": 1361.0,
+    "albedo": 0.2,
+    "emissivity": 0.95,
+    "activeFraction": 1.0,
+    "minTemp": 40.0,
+    "maxTempForColor": 230.0,
+    "indirectSamples": 256,
+    "indirectSeed": 1337,
+    "indirectSolarScale": 0.15,
+    "indirectIRScale": 0.05,
+    "maxIndirectFractionOfSolarFlux": 0.1,
+    "rayEpsilon": 0.01
+  },
+  "diagnostics": {
+    "startupLogs": false,
+    "optixLogs": false,
+    "temperatureDebug": false,
+    "temperatureDebugIntervalFrames": 300,
+    "cudaErrorChecks": false,
+    "syncAfterKernels": false
+  },
+  "screenshotCapture": {
+    "enabled": true,
+    "outputDir": "capture_frames",
+    "maxFrames": 300,
+    "frameStride": 1
+  }
+}
+
+
+====================================================================================================
+data\Bennu\Readme.txt
+====================================================================================================
+
+Bennu.ply
+
+element vertex 1683079
+element face 3366134
+
+
 
 
 ====================================================================================================
@@ -4937,6 +5039,149 @@ if __name__ == "__main__":
 
 
 ====================================================================================================
+Dop\Graphs\plot_double_lightcurve.py
+====================================================================================================
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def load_jpl_horizons(filepath):
+    dates = []
+    mags = []
+    in_data_block = False
+    
+    with open(filepath, 'r', encoding='utf-8') as f:
+        for line in f:
+            stripped = line.strip()
+            if stripped == '$$SOE':
+                in_data_block = True
+                continue
+            if stripped == '$$EOE':
+                break
+                
+            if in_data_block and stripped:
+                cols = [c.strip() for c in stripped.split(',')]
+                if len(cols) > 5:
+                    # Дата лежить у першій колонці (напр. '2025-Nov-29 00:00')
+                    date_str = cols[0] 
+                    # APmag лежить у шостій колонці (індекс 5)
+                    try:
+                        ap_mag = float(cols[5])
+                        dates.append(date_str)
+                        mags.append(ap_mag)
+                    except ValueError:
+                        continue
+
+    # Створюємо DataFrame та конвертуємо дати у Юліанські дні (JD)
+    df = pd.DataFrame({'DateStr': dates, 'JPL_Mag': mags})
+    df['Datetime'] = pd.to_datetime(df['DateStr'], format='%Y-%b-%d %H:%M')
+    
+    # Вбудована функція pandas для отримання JD
+    df['JD'] = df['Datetime'].apply(lambda x: x.to_julian_date())
+    return df
+
+def main():
+    # Шляхи до файлів (зміни за потреби)
+    sim_file = 'photometry_log.csv' # або де лежить твій csv
+    jpl_file = '../FromJPLHorizons/17_08_2026/m_Bennu.txt'
+    
+    # 1. Завантаження симуляції
+    try:
+        df_sim = pd.read_csv(sim_file)
+        df_sim = df_sim[df_sim['ApparentMagnitude'] < 90.0] # Відкидаємо помилки
+    except FileNotFoundError:
+        print(f"Помилка: Не знайдено файл симуляції {sim_file}")
+        return
+
+    # 2. Завантаження даних JPL
+    try:
+        df_jpl = load_jpl_horizons(jpl_file)
+    except FileNotFoundError:
+        print(f"Помилка: Не знайдено файл JPL {jpl_file}")
+        return
+
+    # 3. Побудова графіка
+    plt.figure(figsize=(12, 7))
+    
+    # Малюємо симуляцію (часті точки, детальна крива)
+    plt.plot(df_sim['JD'], df_sim['ApparentMagnitude'], 
+             label='Simulation (3D Rotational Lightcurve)', 
+             color='blue', linewidth=1.5)
+    
+    # Малюємо дані JPL Horizons (рідкі точки кожні 10 хв, згладжена лінія)
+    plt.plot(df_jpl['JD'], df_jpl['JPL_Mag'], 
+             label='JPL Horizons (H-G Model Baseline)', 
+             color='red', linestyle='--', linewidth=2)
+
+    # Обмежуємо вісь X межами нашої симуляції (4.3 години)
+    min_jd = df_sim['JD'].min()
+    max_jd = df_sim['JD'].max()
+    plt.xlim(min_jd, max_jd)
+
+    # Інверсія осі Y (для зоряних величин)
+    plt.gca().invert_yaxis()
+
+    plt.title('Порівняння видимої зоряної величини: Симуляція vs JPL Horizons')
+    plt.xlabel('Julian Date (JD)')
+    plt.ylabel('Apparent Magnitude (m)')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+
+    plt.savefig('lightcurve_comparison.png', dpi=300)
+    plt.show()
+
+if __name__ == "__main__":
+    main()
+
+
+====================================================================================================
+Dop\Graphs\plot_lightcurve.py
+====================================================================================================
+
+import pandas as pd
+import matplotlib.pyplot as plt
+
+def main():
+    csv_file = 'photometry_log.csv' # або просто 'photometry_log.csv' залежно від робочої директорії
+    
+    try:
+        df = pd.read_csv(csv_file)
+    except FileNotFoundError:
+        print(f"Помилка: Файл {csv_file} не знайдено.")
+        return
+
+    # Відкидаємо некоректні значення (наприклад, 99.0, які повертає С++ при помилках видимості)
+    df = df[df['ApparentMagnitude'] < 90.0]
+
+    if df.empty:
+        print("Немає валідних даних для малювання графіка.")
+        return
+
+    # Створення графіка
+    plt.figure(figsize=(10, 6))
+    plt.plot(df['JD'], df['ApparentMagnitude'], marker='.', linestyle='-', color='b', markersize=4)
+
+    # Інверсія осі Y (астрономічний стандарт: чим яскравіше, тим менша величина)
+    plt.gca().invert_yaxis()
+
+    plt.title('Крива блиску (Apparent Magnitude vs Julian Date)')
+    plt.xlabel('Julian Date (JD)')
+    plt.ylabel('Apparent Magnitude')
+    plt.grid(True, linestyle='--', alpha=0.7)
+    
+    # Автоматичне налаштування відступів
+    plt.tight_layout()
+
+    # Збереження і показ
+    plt.savefig('light_curve.png', dpi=300)
+    plt.show()
+
+if __name__ == "__main__":
+    main()
+
+
+====================================================================================================
 src\Core\App.cpp
 ====================================================================================================
 
@@ -4977,6 +5222,8 @@ App::App() {
 
 App::~App() {
     if (d_prevTemperature) cudaFree(d_prevTemperature);
+
+    if (photometryLog.is_open()) photometryLog.close();
 }
 
 bool App::Init() {
@@ -4998,22 +5245,21 @@ bool App::Init() {
     if (!optixRenderer->BuildPipeline(config.ptxPath)) { std::cerr << "Failed: OptiX BuildPipeline" << std::endl; return false; }
     cometMesh.UnmapFromCUDA();
 
+    photometryLog.open("C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\photometry_log.csv");
+    if (photometryLog.is_open()) {
+        photometryLog << "JD,PhaseAngle_deg,VisibleArea_m2,ApparentMagnitude" << std::endl;
+    }
+
     return true;
 }
 
 void App::Run() {
-    double previousRealTime = glfwGetTime();
+    const double FIXED_DT = 1.0 / 60.0;
 
     while (!glContext->ShouldClose()) {
         glContext->PollEvents();
 
-        double currentRealTime = glfwGetTime();
-        double dt = currentRealTime - previousRealTime;
-        previousRealTime = currentRealTime;
-
-        if (dt > 0.25) dt = 0.25;
-
-        Update(dt);
+        Update(FIXED_DT);
         RenderOpenGL();
 
         CaptureScreenshotIfNeeded(
@@ -5041,17 +5287,32 @@ void App::Update(double dt) {
 
     RunOptixThermal(d_vertices);
 
-    if (frameCount % 60 == 0) {
-        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0; //  km^2 to m^2
+    if (frameCount % 60 == 0 || true) {
+        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0; // km^2 to m^2
         double currentMag = Photometry::CalculateMagnitudeFromVisibleArea(
-			visibleArea,
+            visibleArea,
             spaceScene.GetCometHeliocentricDist(),
             spaceScene.GetCometGeocentricDist(),
             config.thermal.albedo
         );
-        std::cout << "[Photometry] JD: " << simTime.GetCurrentJD()
+
+        double jd = simTime.GetCurrentJD();
+        double phaseAngle = spaceScene.GetPhaseAngleDeg();
+        double realTimeHours = simTime.GetElapsedSeconds() / 3600.0;
+
+        std::cout << "[Photometry] JD: " << std::fixed << std::setprecision(2) << jd
+            << " | Phase Angle: " << phaseAngle << " deg"
             << " | Visible Area: " << visibleArea << " m^2"
-            << " | Apparent Mag: " << currentMag << "\n";
+            << " | Apparent Mag: " << currentMag << ""
+            << " | ElapsedSeconds: " << realTimeHours << "\n";
+
+        if (photometryLog.is_open()/* && realTimeHours < config.physics.rotationPeriodHours*/) {
+            photometryLog << std::fixed << std::setprecision(6)
+                << jd << ","
+                << phaseAngle << ","
+                << visibleArea << ","
+                << currentMag << std::endl;
+        }
     }
 
     cometMesh.UnmapFromCUDA();
@@ -5118,8 +5379,11 @@ void App::RenderOpenGL() {
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glm::mat4 view = camera.GetViewMatrix(spaceScene.GetCometRotationAngle(), maxCoord);
-    glLoadMatrixf(glm::value_ptr(view));
+
+    glm::mat4 view = camera.GetViewMatrix(maxCoord);
+    glm::mat4 model = spaceScene.GetCometModelMatrix();
+    glm::mat4 modelView = view * model;
+    glLoadMatrixf(glm::value_ptr(modelView));
 
     cometMesh.BindAndDraw();
 }
@@ -5140,6 +5404,8 @@ src\Core\App.h
 #include "Physics/SpaceScene.h"
 #include "Utils/ScreenshotCapture.h"
 #include <memory>
+#include <fstream>
+#include <iomanip>
 
 class App {
 public:
@@ -5169,6 +5435,8 @@ private:
     SimulationTime simTime;
     SpaceScene spaceScene;
     unsigned int frameCount = 0;
+
+    std::ofstream photometryLog;
 };
 
 
@@ -5205,6 +5473,8 @@ struct AppSettings {
     struct {
         double timeScale = 86400.0;
         double rotationPeriodHours = 12.4;
+        double poleRA = 0.0;  
+        double poleDEC = 90.0;
         double startJulianDate = 2457248.5;
 
         struct {
@@ -5298,6 +5568,8 @@ struct AppSettings {
             auto& phys = j["physics"];
             if (phys.contains("timeScale")) physics.timeScale = phys["timeScale"];
             if (phys.contains("rotationPeriodHours")) physics.rotationPeriodHours = phys["rotationPeriodHours"];
+            if (phys.contains("poleRA")) physics.poleRA = phys["poleRA"];
+            if (phys.contains("poleDEC")) physics.poleDEC = phys["poleDEC"];
             if (phys.contains("startJulianDate")) physics.startJulianDate = phys["startJulianDate"];
 
             if (phys.contains("cometOrbit")) {
@@ -7365,8 +7637,9 @@ void SpaceScene::Update(const SimulationTime& simTime, const AppSettings& config
     UpdateHeliocentricKinematics(simTime);
     UpdateObserverMetrics();
     UpdateSpinKinematics(simTime, config);
-    UpdateLocalCoordinateSystems();
+    UpdateLocalCoordinateSystems(config);
 }
+
 
 void SpaceScene::UpdateHeliocentricKinematics(const SimulationTime& simTime) {
     current_cometPos = cometOrbit.CalculatePosition(simTime.GetCurrentJD());
@@ -7394,11 +7667,21 @@ void SpaceScene::UpdateSpinKinematics(const SimulationTime& simTime, const AppSe
     current_Angle = (float)std::fmod(simTime.GetElapsedSeconds() * rotationSpeed, 2.0 * PhysicsConsts::PI);
 }
 
-void SpaceScene::UpdateLocalCoordinateSystems() {
+void SpaceScene::UpdateLocalCoordinateSystems(const AppSettings& config) {
     glm::dvec3 dirToSunWorld = glm::normalize(-current_cometPos);
     glm::dvec3 dirToEarthWorld = glm::normalize(current_earthPos - current_cometPos);
 
-    glm::mat3 invRot = glm::mat3(glm::rotate(glm::mat4(1.0f), -current_Angle, glm::vec3(0.0f, 1.0f, 0.0f)));
+    float ra = glm::radians((float)config.physics.poleRA);
+    float dec = glm::radians((float)config.physics.poleDEC);
+
+    glm::mat4 spin = glm::rotate(glm::mat4(1.0f), current_Angle, glm::vec3(0.0f, 0.0f, 1.0f));
+
+    glm::mat4 tilt = glm::rotate(glm::mat4(1.0f), ra, glm::vec3(0.0f, 0.0f, 1.0f)) *
+        glm::rotate(glm::mat4(1.0f), glm::radians(90.0f) - dec, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    current_modelMatrix = tilt * spin;
+
+    glm::mat3 invRot = glm::mat3(glm::inverse(current_modelMatrix));
 
     current_sunLocalDir = invRot * glm::vec3(dirToSunWorld);
     current_earthLocalDir = invRot * glm::vec3(dirToEarthWorld);
@@ -7428,19 +7711,21 @@ public:
 
     glm::vec3 GetSunLocalDir() const { return current_sunLocalDir; }
     glm::vec3 GetEarthLocalDir() const { return current_earthLocalDir; }
-    float GetCometRotationAngle() const { return current_Angle; }
+    glm::mat4 GetCometModelMatrix() const { return current_modelMatrix; }
+
 
 private:
     void UpdateHeliocentricKinematics(const SimulationTime& simTime);
     void UpdateObserverMetrics();
     void UpdateSpinKinematics(const SimulationTime& simTime, const AppSettings& config);
-    void UpdateLocalCoordinateSystems();
+    void UpdateLocalCoordinateSystems(const AppSettings& config);
 
     OrbitalBody cometOrbit;
     OrbitalBody earthOrbit;
 
     glm::dvec3 current_cometPos = glm::dvec3(0.0);
     glm::dvec3 current_earthPos = glm::dvec3(0.0);
+    glm::mat4 current_modelMatrix = glm::mat4(1.0f);
 
     double current_rh_AU = 0.0;
     double current_delta_AU = 0.0;
@@ -7522,13 +7807,11 @@ glm::mat4 Camera::GetProjectionMatrix(int width, int height, float maxCoord) con
     return glm::perspective(glm::radians(fov), (float)width / (float)height, 0.1f, maxCoord * farPlaneMultiplier);
 }
 
-glm::mat4 Camera::GetViewMatrix(float currentAngle, float maxCoord) const {
-    glm::mat4 view = glm::lookAt(
+glm::mat4 Camera::GetViewMatrix(float maxCoord) const {
+    return glm::lookAt(
         glm::vec3(0, maxCoord * heightMultiplier, maxCoord * distanceMultiplier),
         glm::vec3(0, 0, 0), glm::vec3(0, 1, 0)
     );
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), currentAngle, glm::vec3(0, 1, 0));
-    return view * model;
 }
 
 
@@ -7545,7 +7828,7 @@ public:
     void Init(const AppSettings& config);
     void ApplyClearColor() const;
     glm::mat4 GetProjectionMatrix(int width, int height, float maxCoord) const;
-    glm::mat4 GetViewMatrix(float currentAngle, float maxCoord) const;
+    glm::mat4 GetViewMatrix(float maxCoord) const;
 
 private:
     float fov = 60.0f;

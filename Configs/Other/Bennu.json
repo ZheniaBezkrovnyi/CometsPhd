@@ -10,35 +10,40 @@
     "heightMultiplier": 0.5,
     "distanceMultiplier": 1.8,
     "farPlaneMultiplier": 10.0,
-    "clearColor": [ 0.0, 0.0, 0.0, 1.0 ]
+    "clearColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
   },
   "physics": {
-    "timeScale": 2640.0,
-    "rotationPeriodHours": 4.297,
+    "timeScale": 3000000.0,
+    "rotationPeriodHours": 4.296057,
     "poleRA": 85.6588,
     "poleDEC": -60.1698,
-    "startJulianDate": 2460705.5,
+    "startJulianDate": 2461703.5,
     "cometOrbit": {
-      "a": 3.458455370739109,
-      "e": 0.6499421977885130,
-      "i": 3.869314198852129,
-      "Omega": 36.32205477398746,
-      "w": 22.19785491382674,
-      "M0": 181.4891311250904,
-      "epoch": 2460705.5
+      "a": 1.125999841394017,
+      "e": 0.2036966454186834,
+      "i": 6.032814270211719,
+      "Omega": 1.968873751992122,
+      "w": 66.40799693815983,
+      "M0": 274.0674659960083,
+      "epoch": 2461008.5
     },
     "earthOrbit": {
-      "a": 1.000006351991092,
-      "e": 0.01669829008180246,
-      "i": 0.003248050135173038,
-      "Omega": 174.4712892867145,
-      "w": 288.4490093009512,
-      "M0": 26.21190445180298,
-      "epoch": 2460705.5
+      "a": 0.9999926792316651,
+      "e": 0.01666455261234486,
+      "i": 0.003433257724763637,
+      "Omega": 174.9587520340257,
+      "w": 288.1112956977394,
+      "M0": 324.7065293115908,
+      "epoch": 2461008.5
     }
   },
   "photometry": {
-    "absoluteMagnitudeH": 15.0,
+    "absoluteMagnitudeH": 20.2,
     "phaseCoefficientBeta": 0.04
   },
   "thermal": {
@@ -66,7 +71,7 @@
   "screenshotCapture": {
     "enabled": true,
     "outputDir": "capture_frames",
-    "maxFrames": 50,
+    "maxFrames": 300,
     "frameStride": 1
   }
 }

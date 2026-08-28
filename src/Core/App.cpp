@@ -35,6 +35,8 @@ App::App() {
 
 App::~App() {
     if (d_prevTemperature) cudaFree(d_prevTemperature);
+
+    if (photometryLog.is_open()) photometryLog.close();
 }
 
 bool App::Init() {
@@ -56,22 +58,21 @@ bool App::Init() {
     if (!optixRenderer->BuildPipeline(config.ptxPath)) { std::cerr << "Failed: OptiX BuildPipeline" << std::endl; return false; }
     cometMesh.UnmapFromCUDA();
 
+    photometryLog.open("C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\photometry_log.csv");
+    if (photometryLog.is_open()) {
+        photometryLog << "JD,PhaseAngle_deg,VisibleArea_m2,ApparentMagnitude" << std::endl;
+    }
+
     return true;
 }
 
 void App::Run() {
-    double previousRealTime = glfwGetTime();
+    const double FIXED_DT = 1.0 / 60.0;
 
     while (!glContext->ShouldClose()) {
         glContext->PollEvents();
 
-        double currentRealTime = glfwGetTime();
-        double dt = currentRealTime - previousRealTime;
-        previousRealTime = currentRealTime;
-
-        if (dt > 0.25) dt = 0.25;
-
-        Update(dt);
+        Update(FIXED_DT);
         RenderOpenGL();
 
         CaptureScreenshotIfNeeded(
@@ -99,17 +100,32 @@ void App::Update(double dt) {
 
     RunOptixThermal(d_vertices);
 
-    if (frameCount % 60 == 0) {
-        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0; //  km^2 to m^2
+    if (frameCount % 60 == 0 || true) {
+        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0; // km^2 to m^2
         double currentMag = Photometry::CalculateMagnitudeFromVisibleArea(
-			visibleArea,
+            visibleArea,
             spaceScene.GetCometHeliocentricDist(),
             spaceScene.GetCometGeocentricDist(),
             config.thermal.albedo
         );
-        std::cout << "[Photometry] JD: " << simTime.GetCurrentJD()
+
+        double jd = simTime.GetCurrentJD();
+        double phaseAngle = spaceScene.GetPhaseAngleDeg();
+        double realTimeHours = simTime.GetElapsedSeconds() / 3600.0;
+
+        std::cout << "[Photometry] JD: " << std::fixed << std::setprecision(2) << jd
+            << " | Phase Angle: " << phaseAngle << " deg"
             << " | Visible Area: " << visibleArea << " m^2"
-            << " | Apparent Mag: " << currentMag << "\n";
+            << " | Apparent Mag: " << currentMag << ""
+            << " | ElapsedSeconds: " << realTimeHours << "\n";
+
+        if (photometryLog.is_open()/* && realTimeHours < config.physics.rotationPeriodHours*/) {
+            photometryLog << std::fixed << std::setprecision(6)
+                << jd << ","
+                << phaseAngle << ","
+                << visibleArea << ","
+                << currentMag << std::endl;
+        }
     }
 
     cometMesh.UnmapFromCUDA();
