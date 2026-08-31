@@ -71,87 +71,6 @@ add_custom_command(TARGET CometSimulator POST_BUILD
 )
 
 
-====================================================================================================
-Configs\Bennu.json
-====================================================================================================
-
-{
-  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Bennu/Bennu.ply",
-  "ptxPath": "OptixKernels.ptx",
-  "window": {
-    "width": 1100,
-    "height": 1100
-  },
-  "camera": {
-    "fov": 60.0,
-    "heightMultiplier": 0.5,
-    "distanceMultiplier": 1.8,
-    "farPlaneMultiplier": 10.0,
-    "clearColor": [
-      0.0,
-      0.0,
-      0.0,
-      1.0
-    ]
-  },
-  "physics": {
-    "timeScale": 3000000.0,
-    "rotationPeriodHours": 4.296057,
-    "poleRA": 85.6588,
-    "poleDEC": -60.1698,
-    "startJulianDate": 2461703.5,
-    "cometOrbit": {
-      "a": 1.125999841394017,
-      "e": 0.2036966454186834,
-      "i": 6.032814270211719,
-      "Omega": 1.968873751992122,
-      "w": 66.40799693815983,
-      "M0": 274.0674659960083,
-      "epoch": 2461008.5
-    },
-    "earthOrbit": {
-      "a": 0.9999926792316651,
-      "e": 0.01666455261234486,
-      "i": 0.003433257724763637,
-      "Omega": 174.9587520340257,
-      "w": 288.1112956977394,
-      "M0": 324.7065293115908,
-      "epoch": 2461008.5
-    }
-  },
-  "photometry": {
-    "absoluteMagnitudeH": 20.2,
-    "phaseCoefficientBeta": 0.04
-  },
-  "thermal": {
-    "solarConstant": 1361.0,
-    "albedo": 0.04,
-    "emissivity": 0.95,
-    "activeFraction": 1.0,
-    "minTemp": 40.0,
-    "maxTempForColor": 230.0,
-    "indirectSamples": 256,
-    "indirectSeed": 1337,
-    "indirectSolarScale": 0.15,
-    "indirectIRScale": 0.05,
-    "maxIndirectFractionOfSolarFlux": 0.1,
-    "rayEpsilon": 0.01
-  },
-  "diagnostics": {
-    "startupLogs": false,
-    "optixLogs": false,
-    "temperatureDebug": false,
-    "temperatureDebugIntervalFrames": 300,
-    "cudaErrorChecks": false,
-    "syncAfterKernels": false
-  },
-  "screenshotCapture": {
-    "enabled": true,
-    "outputDir": "capture_frames",
-    "maxFrames": 300,
-    "frameStride": 1
-  }
-}
 
 
 ====================================================================================================
@@ -236,6 +155,89 @@ Configs\Other\2.json
         "maxFrames": 50,
         "frameStride": 1
     }
+}
+
+
+====================================================================================================
+Configs\Other\Bennu.json
+====================================================================================================
+
+{
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Bennu/Bennu.ply",
+  "ptxPath": "OptixKernels.ptx",
+  "window": {
+    "width": 1100,
+    "height": 1100
+  },
+  "camera": {
+    "fov": 60.0,
+    "heightMultiplier": 0.5,
+    "distanceMultiplier": 1.8,
+    "farPlaneMultiplier": 10.0,
+    "clearColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "physics": {
+    "timeScale": 3000000.0,
+    "rotationPeriodHours": 4.296057,
+    "poleRA": 85.6588,
+    "poleDEC": -60.1698,
+    "startJulianDate": 2461703.5,
+    "cometOrbit": {
+      "a": 1.125999841394017,
+      "e": 0.2036966454186834,
+      "i": 6.032814270211719,
+      "Omega": 1.968873751992122,
+      "w": 66.40799693815983,
+      "M0": 274.0674659960083,
+      "epoch": 2461008.5
+    },
+    "earthOrbit": {
+      "a": 0.9999926792316651,
+      "e": 0.01666455261234486,
+      "i": 0.003433257724763637,
+      "Omega": 174.9587520340257,
+      "w": 288.1112956977394,
+      "M0": 324.7065293115908,
+      "epoch": 2461008.5
+    }
+  },
+  "photometry": {
+    "absoluteMagnitudeH": 20.2,
+    "phaseCoefficientBeta": 0.04
+  },
+  "thermal": {
+    "solarConstant": 1361.0,
+    "albedo": 0.04,
+    "emissivity": 0.95,
+    "activeFraction": 1.0,
+    "minTemp": 40.0,
+    "maxTempForColor": 230.0,
+    "indirectSamples": 256,
+    "indirectSeed": 1337,
+    "indirectSolarScale": 0.15,
+    "indirectIRScale": 0.05,
+    "maxIndirectFractionOfSolarFlux": 0.1,
+    "rayEpsilon": 0.01
+  },
+  "diagnostics": {
+    "startupLogs": false,
+    "optixLogs": false,
+    "temperatureDebug": false,
+    "temperatureDebugIntervalFrames": 300,
+    "cudaErrorChecks": false,
+    "syncAfterKernels": false
+  },
+  "screenshotCapture": {
+    "enabled": true,
+    "outputDir": "capture_frames",
+    "maxFrames": 300,
+    "frameStride": 1
+  }
 }
 
 
@@ -339,7 +341,90 @@ Configs\Other\Epoc.json
     ]
   },
   "physics": {
-    "timeScale": 1000.0,
+    "timeScale": 100000.0,
+    "rotationPeriodHours": 5.27025528,
+    "poleRA": 11.29,
+    "poleDEC": 16.81,
+    "startJulianDate": 2458348.826355,
+    "cometOrbit": {
+      "a": 1.457904049191337,
+      "e": 0.2226318475563069,
+      "i": 10.82802209271655,
+      "Omega": 304.3156467998292,
+      "w": 178.7903296363619,
+      "M0": 266.1665970772865,
+      "epoch": 2458348.5
+    },
+    "earthOrbit": {
+      "a": 1.00011793,
+      "e": 0.01687291,
+      "i": 0.00200093,
+      "Omega": 177.21462,
+      "w": 284.5968,
+      "M0": 224.28822,
+      "epoch": 2458348.5
+    }
+  },
+  "photometry": {
+    "absoluteMagnitudeH": 10.4,
+    "phaseCoefficientBeta": 0.04
+  },
+  "thermal": {
+    "solarConstant": 1361.0,
+    "albedo": 0.2,
+    "emissivity": 0.95,
+    "activeFraction": 1.0,
+    "minTemp": 40.0,
+    "maxTempForColor": 230.0,
+    "indirectSamples": 256,
+    "indirectSeed": 1337,
+    "indirectSolarScale": 0.15,
+    "indirectIRScale": 0.05,
+    "maxIndirectFractionOfSolarFlux": 0.1,
+    "rayEpsilon": 0.01
+  },
+  "diagnostics": {
+    "startupLogs": false,
+    "optixLogs": false,
+    "temperatureDebug": false,
+    "temperatureDebugIntervalFrames": 300,
+    "cudaErrorChecks": false,
+    "syncAfterKernels": false
+  },
+  "screenshotCapture": {
+    "enabled": true,
+    "outputDir": "capture_frames",
+    "maxFrames": 300,
+    "frameStride": 1
+  }
+}
+
+
+====================================================================================================
+Configs\Sphere.json
+====================================================================================================
+
+{
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Sphere/Sphere.ply",
+  "ptxPath": "OptixKernels.ptx",
+  "window": {
+    "width": 1100,
+    "height": 1100
+  },
+  "camera": {
+    "fov": 60.0,
+    "heightMultiplier": 0.5,
+    "distanceMultiplier": 1.8,
+    "farPlaneMultiplier": 10.0,
+    "clearColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "physics": {
+    "timeScale": 100000.0,
     "rotationPeriodHours": 5.27025528,
     "poleRA": 11.29,
     "poleDEC": 16.81,
