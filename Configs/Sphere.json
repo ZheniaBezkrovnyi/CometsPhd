@@ -1,5 +1,5 @@
 {
-  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Sphere/Sphere.ply",
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Sphere/Sphere_20480.ply",
   "ptxPath": "OptixKernels.ptx",
   "window": {
     "width": 1100,
@@ -18,7 +18,7 @@
     ]
   },
   "physics": {
-    "timeScale": 100000.0,
+    "timeScale": 100.0,
     "rotationPeriodHours": 5.27025528,
     "poleRA": 11.29,
     "poleDEC": 16.81,

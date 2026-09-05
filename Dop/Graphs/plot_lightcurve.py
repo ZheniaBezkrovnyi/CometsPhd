@@ -1,8 +1,11 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
 def main():
-    csv_file = 'photometry_log.csv' # або просто 'photometry_log.csv' залежно від робочої директорії
+    # Визначаємо папку, у якій знаходиться сам Python-скрипт
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_file = os.path.join(script_dir, 'photometry_log.csv')
     
     try:
         df = pd.read_csv(csv_file)
@@ -32,8 +35,9 @@ def main():
     # Автоматичне налаштування відступів
     plt.tight_layout()
 
-    # Збереження і показ
-    plt.savefig('light_curve.png', dpi=300)
+    # Збереження поруч зі скриптом
+    out_img = os.path.join(script_dir, 'light_curve.png')
+    plt.savefig(out_img, dpi=300)
     plt.show()
 
 if __name__ == "__main__":

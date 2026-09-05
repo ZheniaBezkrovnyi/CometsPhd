@@ -25,6 +25,8 @@ private:
     void RunOptixThermal(InteropVertex* d_vertices);
     float RunOptixPhotometry(InteropVertex* d_vertices);
     void RenderOpenGL();
+    void OnSimulationComplete();
+    void RecordData();
 
     AppSettings config;
     std::unique_ptr<GLContext> glContext;
@@ -42,4 +44,5 @@ private:
     unsigned int frameCount = 0;
 
     std::ofstream photometryLog;
+    bool simulationFinished = false;
 };

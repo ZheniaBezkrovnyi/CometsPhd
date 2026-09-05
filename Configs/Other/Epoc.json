@@ -18,7 +18,7 @@
     ]
   },
   "physics": {
-    "timeScale": 100000.0,
+    "timeScale": 100.0,
     "rotationPeriodHours": 5.27025528,
     "poleRA": 11.29,
     "poleDEC": 16.81,

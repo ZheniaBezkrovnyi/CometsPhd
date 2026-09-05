@@ -405,7 +405,7 @@ Configs\Sphere.json
 ====================================================================================================
 
 {
-  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Sphere/Sphere.ply",
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Sphere/Sphere_408.ply",
   "ptxPath": "OptixKernels.ptx",
   "window": {
     "width": 1100,
@@ -7728,7 +7728,7 @@ void SpaceScene::Update(const SimulationTime& simTime, const AppSettings& config
 
 void SpaceScene::UpdateHeliocentricKinematics(const SimulationTime& simTime) {
     current_cometPos = cometOrbit.CalculatePosition(simTime.GetCurrentJD());
-    current_earthPos = earthOrbit.CalculatePosition(simTime.GetCurrentJD());
+
 
     current_rh_AU = glm::length(current_cometPos);
 }

@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -37,9 +38,14 @@ def load_jpl_horizons(filepath):
     return df
 
 def main():
-    # Шляхи до файлів (зміни за потреби)
-    sim_file = 'photometry_log.csv' # або де лежить твій csv
-    jpl_file = '../FromJPLHorizons/17_08_2026/m_Bennu.txt'
+    # Визначаємо папку, у якій знаходиться сам Python-скрипт
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Динамічні шляхи до файлів відносно папки скрипта
+    sim_file = os.path.join(script_dir, 'photometry_log.csv')
+    
+    # os.path.normpath коректно обробляє перехід на рівень вище "../"
+    jpl_file = os.path.normpath(os.path.join(script_dir, '../FromJPLHorizons/17_08_2026/m_Bennu.txt'))
     
     # 1. Завантаження симуляції
     try:
@@ -84,7 +90,9 @@ def main():
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
 
-    plt.savefig('lightcurve_comparison.png', dpi=300)
+    # Збереження картинки поруч зі скриптом
+    out_img = os.path.join(script_dir, 'lightcurve_comparison.png')
+    plt.savefig(out_img, dpi=300)
     plt.show()
 
 if __name__ == "__main__":
