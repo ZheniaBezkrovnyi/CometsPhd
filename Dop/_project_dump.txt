@@ -341,7 +341,7 @@ Configs\Other\Epoc.json
     ]
   },
   "physics": {
-    "timeScale": 100000.0,
+    "timeScale": 100.0,
     "rotationPeriodHours": 5.27025528,
     "poleRA": 11.29,
     "poleDEC": 16.81,
@@ -405,7 +405,7 @@ Configs\Sphere.json
 ====================================================================================================
 
 {
-  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Sphere/Sphere_408.ply",
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Sphere/Sphere_20480.ply",
   "ptxPath": "OptixKernels.ptx",
   "window": {
     "width": 1100,
@@ -424,7 +424,7 @@ Configs\Sphere.json
     ]
   },
   "physics": {
-    "timeScale": 100000.0,
+    "timeScale": 100.0,
     "rotationPeriodHours": 5.27025528,
     "poleRA": 11.29,
     "poleDEC": 16.81,
@@ -5127,6 +5127,7 @@ if __name__ == "__main__":
 Dop\Graphs\plot_double_lightcurve.py
 ====================================================================================================
 
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -5166,9 +5167,14 @@ def load_jpl_horizons(filepath):
     return df
 
 def main():
-    # Шляхи до файлів (зміни за потреби)
-    sim_file = 'photometry_log.csv' # або де лежить твій csv
-    jpl_file = '../FromJPLHorizons/17_08_2026/m_Bennu.txt'
+    # Визначаємо папку, у якій знаходиться сам Python-скрипт
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # Динамічні шляхи до файлів відносно папки скрипта
+    sim_file = os.path.join(script_dir, 'photometry_log.csv')
+    
+    # os.path.normpath коректно обробляє перехід на рівень вище "../"
+    jpl_file = os.path.normpath(os.path.join(script_dir, '../FromJPLHorizons/17_08_2026/m_Bennu.txt'))
     
     # 1. Завантаження симуляції
     try:
@@ -5213,7 +5219,9 @@ def main():
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
 
-    plt.savefig('lightcurve_comparison.png', dpi=300)
+    # Збереження картинки поруч зі скриптом
+    out_img = os.path.join(script_dir, 'lightcurve_comparison.png')
+    plt.savefig(out_img, dpi=300)
     plt.show()
 
 if __name__ == "__main__":
@@ -5224,11 +5232,14 @@ if __name__ == "__main__":
 Dop\Graphs\plot_lightcurve.py
 ====================================================================================================
 
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
 def main():
-    csv_file = 'photometry_log.csv' # або просто 'photometry_log.csv' залежно від робочої директорії
+    # Визначаємо папку, у якій знаходиться сам Python-скрипт
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_file = os.path.join(script_dir, 'photometry_log.csv')
     
     try:
         df = pd.read_csv(csv_file)
@@ -5258,8 +5269,9 @@ def main():
     # Автоматичне налаштування відступів
     plt.tight_layout()
 
-    # Збереження і показ
-    plt.savefig('light_curve.png', dpi=300)
+    # Збереження поруч зі скриптом
+    out_img = os.path.join(script_dir, 'light_curve.png')
+    plt.savefig(out_img, dpi=300)
     plt.show()
 
 if __name__ == "__main__":
@@ -5276,6 +5288,8 @@ src\Core\App.cpp
 #include "Physics/Photometry.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "Geometry/ModelLoader.h"
+
+#include <cstdlib>
 
 namespace fs = std::filesystem;
 
@@ -5368,12 +5382,13 @@ void App::Update(double dt) {
     simTime.Advance(dt);
     spaceScene.Update(simTime, config);
 
-    InteropVertex* d_vertices = cometMesh.MapToCUDA();
+    if (simulationFinished) return; 
 
+    InteropVertex* d_vertices = cometMesh.MapToCUDA();
     RunOptixThermal(d_vertices);
 
     if (frameCount % 60 == 0 || true) {
-        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0; // km^2 to m^2
+        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0;
         double currentMag = Photometry::CalculateMagnitudeFromVisibleArea(
             visibleArea,
             spaceScene.GetCometHeliocentricDist(),
@@ -5385,22 +5400,37 @@ void App::Update(double dt) {
         double phaseAngle = spaceScene.GetPhaseAngleDeg();
         double realTimeHours = simTime.GetElapsedSeconds() / 3600.0;
 
-        std::cout << "[Photometry] JD: " << std::fixed << std::setprecision(2) << jd
-            << " | Phase Angle: " << phaseAngle << " deg"
-            << " | Visible Area: " << visibleArea << " m^2"
-            << " | Apparent Mag: " << currentMag << ""
-            << " | ElapsedSeconds: " << realTimeHours << "\n";
+        if (realTimeHours < config.physics.rotationPeriodHours * 150) {
+            std::cout << "[Photometry] JD: " << std::fixed << std::setprecision(2) << jd
+                << " | Phase Angle: " << phaseAngle << " deg"
+                << " | Visible Area: " << visibleArea << " m^2"
+                << " | Apparent Mag: " << currentMag << ""
+                << " | ElapsedHours: " << realTimeHours << "\n";
 
-        if (photometryLog.is_open()/* && realTimeHours < config.physics.rotationPeriodHours*/) {
-            photometryLog << std::fixed << std::setprecision(6)
-                << jd << ","
-                << phaseAngle << ","
-                << visibleArea << ","
-                << currentMag << std::endl;
+            if (photometryLog.is_open()) {
+                photometryLog << std::fixed << std::setprecision(6)
+                    << jd << "," << phaseAngle << "," << visibleArea << "," << currentMag << std::endl;
+            }
+        }
+        else {
+            OnSimulationComplete();
         }
     }
 
     cometMesh.UnmapFromCUDA();
+}
+void App::OnSimulationComplete() {
+    simulationFinished = true;
+
+    if (photometryLog.is_open()) {
+        photometryLog.close();
+    }
+
+    std::cout << "\n Running Python scripts...\n";
+    std::system("python C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\plot_lightcurve.py");
+    //std::system("python C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\plot_double_lightcurve.py");
+
+    glfwSetWindowShouldClose(glContext->GetWindow(), GLFW_TRUE);
 }
 
 void App::RunOptixThermal(InteropVertex* d_vertices) {
@@ -5505,6 +5535,8 @@ private:
     void RunOptixThermal(InteropVertex* d_vertices);
     float RunOptixPhotometry(InteropVertex* d_vertices);
     void RenderOpenGL();
+    void OnSimulationComplete();
+    void RecordData();
 
     AppSettings config;
     std::unique_ptr<GLContext> glContext;
@@ -5522,6 +5554,7 @@ private:
     unsigned int frameCount = 0;
 
     std::ofstream photometryLog;
+    bool simulationFinished = false;
 };
 
 
@@ -7727,10 +7760,14 @@ void SpaceScene::Update(const SimulationTime& simTime, const AppSettings& config
 
 
 void SpaceScene::UpdateHeliocentricKinematics(const SimulationTime& simTime) {
-    current_cometPos = cometOrbit.CalculatePosition(simTime.GetCurrentJD());
+    bool firstFrameOnly = true;
+    if (firstFrameOnly) {
+        current_cometPos = cometOrbit.CalculatePosition(simTime.GetCurrentJD());
+        current_earthPos = earthOrbit.CalculatePosition(simTime.GetCurrentJD());
+        current_rh_AU = glm::length(current_cometPos);
 
-
-    current_rh_AU = glm::length(current_cometPos);
+        firstFrameOnly = false;
+    }
 }
 
 void SpaceScene::UpdateObserverMetrics() {

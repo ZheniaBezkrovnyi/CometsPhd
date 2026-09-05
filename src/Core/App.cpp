@@ -62,7 +62,7 @@ bool App::Init() {
 
     photometryLog.open("C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\photometry_log.csv");
     if (photometryLog.is_open()) {
-        photometryLog << "JD,PhaseAngle_deg,VisibleArea_m2,ApparentMagnitude" << std::endl;
+        photometryLog << "JD,PhaseAngle_deg,Distance_AU,ApparentMagnitude" << std::endl;
     }
 
     return true;
@@ -105,10 +105,11 @@ void App::Update(double dt) {
 
     if (frameCount % 60 == 0 || true) {
         float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0;
+        double distanceAU = spaceScene.GetCometGeocentricDist();
         double currentMag = Photometry::CalculateMagnitudeFromVisibleArea(
             visibleArea,
             spaceScene.GetCometHeliocentricDist(),
-            spaceScene.GetCometGeocentricDist(),
+            distanceAU,
             config.thermal.albedo
         );
 
@@ -116,16 +117,16 @@ void App::Update(double dt) {
         double phaseAngle = spaceScene.GetPhaseAngleDeg();
         double realTimeHours = simTime.GetElapsedSeconds() / 3600.0;
 
-        if (realTimeHours < config.physics.rotationPeriodHours * 150) {
-            std::cout << "[Photometry] JD: " << std::fixed << std::setprecision(2) << jd
+        if (realTimeHours < config.physics.rotationPeriodHours * 3) {
+            std::cout << "[Metrics] JD: " << std::fixed << std::setprecision(2) << jd
                 << " | Phase Angle: " << phaseAngle << " deg"
-                << " | Visible Area: " << visibleArea << " m^2"
-                << " | Apparent Mag: " << currentMag << ""
+                << " | Dist: " << distanceAU << " AU"
+                << " | Mag: " << currentMag << ""
                 << " | ElapsedHours: " << realTimeHours << "\n";
 
             if (photometryLog.is_open()) {
                 photometryLog << std::fixed << std::setprecision(6)
-                    << jd << "," << phaseAngle << "," << visibleArea << "," << currentMag << std::endl;
+                    << jd << "," << phaseAngle << "," << distanceAU << "," << currentMag << std::endl;
             }
         }
         else {

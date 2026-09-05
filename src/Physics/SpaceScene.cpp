@@ -25,14 +25,15 @@ void SpaceScene::Update(const SimulationTime& simTime, const AppSettings& config
 
 
 void SpaceScene::UpdateHeliocentricKinematics(const SimulationTime& simTime) {
-    bool firstFrameOnly = true;
+    static bool firstFrameOnly = true;
     if (firstFrameOnly) {
         current_cometPos = cometOrbit.CalculatePosition(simTime.GetCurrentJD());
         current_earthPos = earthOrbit.CalculatePosition(simTime.GetCurrentJD());
-        current_rh_AU = glm::length(current_cometPos);
 
         firstFrameOnly = false;
     }
+
+    current_rh_AU = glm::length(current_cometPos);
 }
 
 void SpaceScene::UpdateObserverMetrics() {
