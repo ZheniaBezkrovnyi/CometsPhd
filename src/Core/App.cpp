@@ -117,7 +117,7 @@ void App::Update(double dt) {
         double phaseAngle = spaceScene.GetPhaseAngleDeg();
         double realTimeHours = simTime.GetElapsedSeconds() / 3600.0;
 
-        if (realTimeHours < config.physics.rotationPeriodHours * 3) {
+        if (realTimeHours < config.physics.rotationPeriodHours * config.physics.durationRotations) {
             std::cout << "[Metrics] JD: " << std::fixed << std::setprecision(2) << jd
                 << " | Phase Angle: " << phaseAngle << " deg"
                 << " | Dist: " << distanceAU << " AU"

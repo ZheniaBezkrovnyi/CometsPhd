@@ -14,6 +14,9 @@ void SpaceScene::Init(const AppSettings& config) {
         config.physics.earthOrbit.Omega, config.physics.earthOrbit.w, config.physics.earthOrbit.M0, config.physics.earthOrbit.epoch
     };
     earthOrbit = OrbitalBody(earthElems);
+
+    freezeOrbits = config.physics.freezeOrbits;
+    orbitPositionsReady = false;
 }
 
 void SpaceScene::Update(const SimulationTime& simTime, const AppSettings& config) {
@@ -25,12 +28,11 @@ void SpaceScene::Update(const SimulationTime& simTime, const AppSettings& config
 
 
 void SpaceScene::UpdateHeliocentricKinematics(const SimulationTime& simTime) {
-    static bool firstFrameOnly = true;
-    if (firstFrameOnly) {
+    if (!freezeOrbits || !orbitPositionsReady) {
         current_cometPos = cometOrbit.CalculatePosition(simTime.GetCurrentJD());
         current_earthPos = earthOrbit.CalculatePosition(simTime.GetCurrentJD());
 
-        firstFrameOnly = false;
+        orbitPositionsReady = true;
     }
 
     current_rh_AU = glm::length(current_cometPos);

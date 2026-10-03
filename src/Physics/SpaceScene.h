@@ -40,4 +40,8 @@ private:
     glm::vec3 current_sunLocalDir = glm::vec3(0.0f);
     glm::vec3 current_earthLocalDir = glm::vec3(0.0f);
     float current_Angle = 0.0f;
+
+    bool freezeOrbits = true;
+    bool orbitPositionsReady = false;
+};
 };
