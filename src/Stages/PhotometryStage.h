@@ -8,6 +8,8 @@ class PhotometryStage : public IStage {
 public:
     explicit PhotometryStage(const AppSettings& settings) : config(settings) {}
 
+    const char* Name() const override { return "photometry"; }
+
     void Begin(const std::filesystem::path& runDir) override;
     void Step(const StepContext& ctx) override;
     void End() override;

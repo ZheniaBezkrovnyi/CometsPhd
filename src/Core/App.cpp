@@ -2,6 +2,7 @@
 #include <iostream>
 #include <filesystem>
 #include "Stages/PhotometryStage.h"
+#include "Utils/Timing.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "Geometry/ModelLoader.h"
 #include <cstdlib>
@@ -22,6 +23,8 @@ App::App(const fs::path& configPath, const fs::path& outputDirectory, const fs::
 
     const fs::path shots = config.screenshotCapture.outputDir;
     screenshotDir = (shots.is_relative() ? outputDir / shots : shots).string();
+
+    Timing::Enable(config.diagnostics.timing);
 
     glContext = std::make_unique<GLContext>();
     optixRenderer = std::make_unique<OptixRenderer>();
@@ -70,8 +73,12 @@ void App::Run() {
         glContext->PollEvents();
 
         Update(FIXED_DT);
-        RenderOpenGL();
 
+        Timing::Begin("render");
+        RenderOpenGL();
+        Timing::End();
+
+        Timing::Begin("screenshot");
         CaptureScreenshotIfNeeded(
             screenshotDir,
             config.screenshotCapture.enabled,
@@ -82,11 +89,14 @@ void App::Run() {
             glContext->GetWidth(),
             glContext->GetHeight()
         );
+        Timing::End();
 
         glContext->SwapBuffers();
         frameCount++;
         fpsCounter.Update(glContext->GetWindow(), config.window.title);
     }
+
+    Timing::Report(outputDir);
 
     if (simulationFinished) {
         RunPostProcessing();
@@ -101,14 +111,18 @@ void App::Update(double dt) {
 
     InteropVertex* d_vertices = cometMesh.MapToCUDA();
     if (config.thermal.enabled) {
+        Timing::Begin("thermal");
         RunOptixThermal(d_vertices);
+        Timing::End();
     }
 
     const double elapsedHours = simTime.GetElapsedSeconds() / 3600.0;
     if (elapsedHours < config.physics.rotationPeriodHours * config.physics.durationRotations) {
         const StepContext ctx{ simTime, spaceScene, *optixRenderer, d_vertices, cometMesh.GetVertexCount(), frameCount };
         for (auto& stage : stages) {
+            Timing::Begin(stage->Name());
             stage->Step(ctx);
+            Timing::End();
         }
     }
     else {

@@ -44,4 +44,3 @@ private:
     bool freezeOrbits = true;
     bool orbitPositionsReady = false;
 };
-};

@@ -67,7 +67,8 @@ struct PhotometrySettings {
     bool enabled = true;
     int everyNFrames = 1;
     std::vector<std::string> plots = { "checks/photometry/plot_lightcurve.py" };
-    double phaseCoefficientBeta = 0.0;  
+    double absoluteMagnitudeH = 0.0;
+    double phaseCoefficientBeta = 0.0;
 };
 
 struct DiagnosticsSettings {
@@ -77,6 +78,7 @@ struct DiagnosticsSettings {
     int temperatureDebugIntervalFrames = 300;
     bool cudaErrorChecks = false;
     bool syncAfterKernels = false;
+    bool timing = false;
 };
 
 struct ScreenshotSettings {
@@ -132,7 +134,7 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(CameraSettings, fov, heightMultiplier, distan
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PhotometrySettings, enabled, everyNFrames, plots,
         absoluteMagnitudeH, phaseCoefficientBeta)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DiagnosticsSettings, startupLogs, optixLogs, temperatureDebug,
-        temperatureDebugIntervalFrames, cudaErrorChecks, syncAfterKernels)
+        temperatureDebugIntervalFrames, cudaErrorChecks, syncAfterKernels, timing)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ScreenshotSettings, enabled, outputDir, maxFrames, frameStride)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PostprocessSettings, python, scripts)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AppSettings, modelPath, ptxPath, window, camera, physics, thermal,

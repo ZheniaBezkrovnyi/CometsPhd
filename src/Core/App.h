@@ -37,8 +37,6 @@ private:
     AppSettings config;
     std::filesystem::path outputDir;
     std::string screenshotDir;
-
-    AppSettings config;
     std::unique_ptr<GLContext> glContext;
     std::unique_ptr<OptixRenderer> optixRenderer;
     FPSCounter fpsCounter;

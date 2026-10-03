@@ -21,6 +21,7 @@ class IStage {
 public:
     virtual ~IStage() = default;
 
+    virtual const char* Name() const = 0;   
     virtual void Begin(const std::filesystem::path& /*runDir*/) {}
     virtual void Step(const StepContext& ctx) = 0;
     virtual void End() {}
