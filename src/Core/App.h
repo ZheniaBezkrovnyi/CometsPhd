@@ -11,10 +11,13 @@
 #include <memory>
 #include <fstream>
 #include <iomanip>
+#include <filesystem>
 
 class App {
 public:
-    App();
+    App(const std::filesystem::path& configPath,
+        const std::filesystem::path& outputDirectory,
+        const std::filesystem::path& exeDir);
     ~App();
 
     bool Init();
@@ -27,6 +30,11 @@ private:
     void RenderOpenGL();
     void OnSimulationComplete();
     void RecordData();
+    void RunPostProcessing();
+
+    AppSettings config;
+    std::filesystem::path outputDir;
+    std::string screenshotDir;
 
     AppSettings config;
     std::unique_ptr<GLContext> glContext;

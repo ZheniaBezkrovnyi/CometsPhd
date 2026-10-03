@@ -1,4 +1,5 @@
 import os
+import sys
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -28,8 +29,11 @@ PLOTS_CONFIG = {
 }
 
 def main():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_file = os.path.join(script_dir, 'photometry_log.csv')
+    if len(sys.argv) < 2:
+        print("Використання: python tools/plot_lightcurve.py <папка запуску>")
+        return
+    run_dir = sys.argv[1]
+    csv_file = os.path.join(run_dir, 'photometry_log.csv')
     
     try:
         df = pd.read_csv(csv_file)
@@ -63,7 +67,7 @@ def main():
 
         plt.tight_layout()
         
-        out_img = os.path.join(script_dir, settings['filename'])
+        out_img = os.path.join(run_dir, settings['filename'])
         plt.savefig(out_img, dpi=300)
         plt.close() # Очищення пам'яті та підготовка до наступного графіка
         print(f"Збережено графік: {out_img}")

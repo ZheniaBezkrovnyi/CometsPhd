@@ -4,30 +4,24 @@
 #include "Physics/Photometry.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "Geometry/ModelLoader.h"
-
 #include <cstdlib>
+#include <stdexcept>
 
 namespace fs = std::filesystem;
 
-App::App() {
-    std::string configPath = "";
-    std::string configDir = "C:/Users/Yevhen/Projects/Univ/CometsPhd/Configs";
+App::App(const fs::path& configPath, const fs::path& outputDirectory, const fs::path& exeDir)
+    : outputDir(outputDirectory) {
+    if (!fs::exists(configPath)) {
+        throw std::runtime_error("Config not found: " + configPath.string());
+    }
+    config.LoadFromJson(configPath.string());
 
-    if (fs::exists(configDir) && fs::is_directory(configDir)) {
-        for (const auto& entry : fs::directory_iterator(configDir)) {
-            if (entry.is_regular_file() && entry.path().extension() == ".json") {
-                configPath = entry.path().string();
-                break;
-            }
-        }
+    if (fs::path(config.ptxPath).is_relative()) {
+        config.ptxPath = (exeDir / config.ptxPath).string();
     }
 
-    if (!configPath.empty()) {
-        config.LoadFromJson(configPath);
-    }
-    else {
-        std::cerr << "[WARNING] No .json file found in '" << configDir << "' directory. Using hardcoded defaults.\n";
-    }
+    const fs::path shots = config.screenshotCapture.outputDir;
+    screenshotDir = (shots.is_relative() ? outputDir / shots : shots).string();
 
     glContext = std::make_unique<GLContext>();
     optixRenderer = std::make_unique<OptixRenderer>();
@@ -60,10 +54,14 @@ bool App::Init() {
     if (!optixRenderer->BuildPipeline(config.ptxPath)) { std::cerr << "Failed: OptiX BuildPipeline" << std::endl; return false; }
     cometMesh.UnmapFromCUDA();
 
-    photometryLog.open("C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\photometry_log.csv");
-    if (photometryLog.is_open()) {
-        photometryLog << "JD,PhaseAngle_deg,Distance_AU,ApparentMagnitude" << std::endl;
+    fs::create_directories(outputDir);
+    std::ofstream(outputDir / "config.json") << config.ToJson() << "\n";
+
+    photometryLog.open(outputDir / "photometry_log.csv");
+    if (!photometryLog.is_open()) {
+        throw std::runtime_error("Cannot open " + (outputDir / "photometry_log.csv").string());
     }
+    photometryLog << "JD,PhaseAngle_deg,Distance_AU,ApparentMagnitude" << std::endl;
 
     return true;
 }
@@ -78,7 +76,7 @@ void App::Run() {
         RenderOpenGL();
 
         CaptureScreenshotIfNeeded(
-            config.screenshotCapture.outputDir,
+            screenshotDir,
             config.screenshotCapture.enabled,
             config.screenshotCapture.maxFrames,
             config.screenshotCapture.frameStride,
@@ -91,6 +89,10 @@ void App::Run() {
         glContext->SwapBuffers();
         frameCount++;
         fpsCounter.Update(glContext->GetWindow(), config.window.title);
+    }
+
+    if (simulationFinished) {
+        RunPostProcessing();
     }
 }
 
@@ -143,11 +145,22 @@ void App::OnSimulationComplete() {
         photometryLog.close();
     }
 
-    std::cout << "\n Running Python scripts...\n";
-    std::system("python C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\plot_lightcurve.py");
-    //std::system("python C:\\Users\\Yevhen\\Projects\\Univ\\CometsPhd\\Dop\\Graphs\\plot_double_lightcurve.py");
-
     glfwSetWindowShouldClose(glContext->GetWindow(), GLFW_TRUE);
+}
+
+void App::RunPostProcessing() {
+    for (const std::string& name : config.postprocess.scripts) {
+        fs::path script = name;
+        if (script.is_relative()) {
+            script = fs::path(COMET_SOURCE_DIR) / script;   // скрипти лежать у репо, а не поруч з exe
+        }
+        const std::string command = config.postprocess.python + " \"" + script.string() + "\" \""
+            + fs::absolute(outputDir).string() + "\"";
+        std::cout << "[INFO] " << command << "\n";
+        if (std::system(command.c_str()) != 0) {
+            std::cerr << "[WARNING] Post-processing failed: " << script.string() << "\n";
+        }
+    }
 }
 
 void App::RunOptixThermal(InteropVertex* d_vertices) {

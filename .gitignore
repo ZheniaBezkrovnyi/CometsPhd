@@ -1,6 +1,7 @@
 ﻿.vs
 CometsPhd/x64
 
+runs/
 build/
 CMakeFiles/
 Debug/
