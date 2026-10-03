@@ -40,10 +40,10 @@ def load_jpl_horizons(filepath):
 
 def main():
     if len(sys.argv) < 2:
-        print("Використання: python tools/plot_double_lightcurve.py <папка запуску>")
+        print("Використання: python checks/photometry/compare_jpl.py <папка запуску>")
         return
     run_dir = sys.argv[1]
-    repo_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 
     sim_file = os.path.join(run_dir, 'photometry_log.csv')
     jpl_file = os.path.join(repo_dir, 'Dop', 'FromJPLHorizons', '17_08_2026', 'm_Bennu.txt')

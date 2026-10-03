@@ -30,7 +30,7 @@ PLOTS_CONFIG = {
 
 def main():
     if len(sys.argv) < 2:
-        print("Використання: python tools/plot_lightcurve.py <папка запуску>")
+        print("Використання: python checks/photometry/plot_lightcurve.py <папка запуску>")
         return
     run_dir = sys.argv[1]
     csv_file = os.path.join(run_dir, 'photometry_log.csv')

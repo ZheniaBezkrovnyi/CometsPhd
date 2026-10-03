@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
@@ -65,7 +66,7 @@ struct ThermalSettings {
 struct PhotometrySettings {
     bool enabled = true;
     int everyNFrames = 1;
-    std::vector<std::string> plots = { "tools/plot_lightcurve.py" };
+    std::vector<std::string> plots = { "checks/photometry/plot_lightcurve.py" };
     double phaseCoefficientBeta = 0.0;  
 };
 
@@ -151,13 +152,25 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(CameraSettings, fov, heightMultiplier, distan
     }
 }
 
-inline void AppSettings::LoadFromJson(const std::string& filepath) {
-    std::ifstream file(filepath);
+
+inline json ReadConfigJson(const std::filesystem::path& path) {
+    std::ifstream file(path);
     if (!file.is_open()) {
-        throw std::runtime_error("Cannot open config: " + filepath);
+        throw std::runtime_error("Cannot open config: " + path.string());
     }
 
-    const json user = json::parse(file, nullptr, true, true);  
+    json j = json::parse(file, nullptr, true, true);  
+    if (!j.contains("base")) {
+        return j;
+    }
+    json merged = ReadConfigJson(path.parent_path() / j["base"].get<std::string>());
+    j.erase("base");
+    merged.merge_patch(j);
+    return merged;
+}
+
+inline void AppSettings::LoadFromJson(const std::string& filepath) {
+    const json user = ReadConfigJson(filepath);
     json merged = json(*this);
     WarnUnknownKeys(user, merged, "");
 
