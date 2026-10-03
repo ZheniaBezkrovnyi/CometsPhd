@@ -1,7 +1,7 @@
 #include "App.h"
 #include <iostream>
 #include <filesystem>
-#include "Physics/Photometry.h"
+#include "Stages/PhotometryStage.h"
 #include <glm/gtc/type_ptr.hpp>
 #include "Geometry/ModelLoader.h"
 #include <cstdlib>
@@ -31,8 +31,6 @@ App::App(const fs::path& configPath, const fs::path& outputDirectory, const fs::
 
 App::~App() {
     if (d_prevTemperature) cudaFree(d_prevTemperature);
-
-    if (photometryLog.is_open()) photometryLog.close();
 }
 
 bool App::Init() {
@@ -57,11 +55,10 @@ bool App::Init() {
     fs::create_directories(outputDir);
     std::ofstream(outputDir / "config.json") << config.ToJson() << "\n";
 
-    photometryLog.open(outputDir / "photometry_log.csv");
-    if (!photometryLog.is_open()) {
-        throw std::runtime_error("Cannot open " + (outputDir / "photometry_log.csv").string());
+    BuildStages();
+    for (auto& stage : stages) {
+        stage->Begin(outputDir);
     }
-    photometryLog << "JD,PhaseAngle_deg,Distance_AU,ApparentMagnitude" << std::endl;
 
     return true;
 }
@@ -103,37 +100,19 @@ void App::Update(double dt) {
     if (simulationFinished) return; 
 
     InteropVertex* d_vertices = cometMesh.MapToCUDA();
-    RunOptixThermal(d_vertices);
+    if (config.thermal.enabled) {
+        RunOptixThermal(d_vertices);
+    }
 
-    if (frameCount % 60 == 0 || true) {
-        float visibleArea = RunOptixPhotometry(d_vertices) * 1000000.0;
-        double distanceAU = spaceScene.GetCometGeocentricDist();
-        double currentMag = Photometry::CalculateMagnitudeFromVisibleArea(
-            visibleArea,
-            spaceScene.GetCometHeliocentricDist(),
-            distanceAU,
-            config.thermal.albedo
-        );
-
-        double jd = simTime.GetCurrentJD();
-        double phaseAngle = spaceScene.GetPhaseAngleDeg();
-        double realTimeHours = simTime.GetElapsedSeconds() / 3600.0;
-
-        if (realTimeHours < config.physics.rotationPeriodHours * config.physics.durationRotations) {
-            std::cout << "[Metrics] JD: " << std::fixed << std::setprecision(2) << jd
-                << " | Phase Angle: " << phaseAngle << " deg"
-                << " | Dist: " << distanceAU << " AU"
-                << " | Mag: " << currentMag << ""
-                << " | ElapsedHours: " << realTimeHours << "\n";
-
-            if (photometryLog.is_open()) {
-                photometryLog << std::fixed << std::setprecision(6)
-                    << jd << "," << phaseAngle << "," << distanceAU << "," << currentMag << std::endl;
-            }
+    const double elapsedHours = simTime.GetElapsedSeconds() / 3600.0;
+    if (elapsedHours < config.physics.rotationPeriodHours * config.physics.durationRotations) {
+        const StepContext ctx{ simTime, spaceScene, *optixRenderer, d_vertices, cometMesh.GetVertexCount(), frameCount };
+        for (auto& stage : stages) {
+            stage->Step(ctx);
         }
-        else {
-            OnSimulationComplete();
-        }
+    }
+    else {
+        OnSimulationComplete();
     }
 
     cometMesh.UnmapFromCUDA();
@@ -141,18 +120,25 @@ void App::Update(double dt) {
 void App::OnSimulationComplete() {
     simulationFinished = true;
 
-    if (photometryLog.is_open()) {
-        photometryLog.close();
+    for (auto& stage : stages) {
+        stage->End();
     }
 
     glfwSetWindowShouldClose(glContext->GetWindow(), GLFW_TRUE);
 }
 
 void App::RunPostProcessing() {
-    for (const std::string& name : config.postprocess.scripts) {
+    std::vector<std::string> scripts;
+    for (const auto& stage : stages) {
+        const std::vector<std::string> plots = stage->Plots();
+        scripts.insert(scripts.end(), plots.begin(), plots.end());
+    }
+    scripts.insert(scripts.end(), config.postprocess.scripts.begin(), config.postprocess.scripts.end());
+
+    for (const std::string& name : scripts) {
         fs::path script = name;
         if (script.is_relative()) {
-            script = fs::path(COMET_SOURCE_DIR) / script;   // скрипти лежать у репо, а не поруч з exe
+            script = fs::path(COMET_SOURCE_DIR) / script; 
         }
         const std::string command = config.postprocess.python + " \"" + script.string() + "\" \""
             + fs::absolute(outputDir).string() + "\"";
@@ -192,20 +178,9 @@ void App::RunOptixThermal(InteropVertex* d_vertices) {
     optixRenderer->RenderThermal(params, cometMesh.GetVertexCount() / 3);
 }
 
-float App::RunOptixPhotometry(InteropVertex* d_vertices) {
-    OptixParams params = {};
-    params.vertices = d_vertices;
-    params.numVertices = cometMesh.GetVertexCount();
 
-    glm::vec3 sunDir = spaceScene.GetSunLocalDir();
-    params.sunDir = make_float3(sunDir.x, sunDir.y, sunDir.z);
-
-    glm::vec3 earthDir = spaceScene.GetEarthLocalDir();
-    params.earthDir = make_float3(earthDir.x, earthDir.y, earthDir.z);
-
-    params.rayEpsilon = config.thermal.rayEpsilon;
-
-    return optixRenderer->RenderPhotometry(params, cometMesh.GetVertexCount() / 3);
+void App::BuildStages() {
+    if (config.photometry.enabled) stages.push_back(std::make_unique<PhotometryStage>(config));
 }
 
 void App::RenderOpenGL() {

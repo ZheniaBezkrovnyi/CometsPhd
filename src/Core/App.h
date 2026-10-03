@@ -8,10 +8,12 @@
 #include "Core/Timer.h"
 #include "Physics/SpaceScene.h"
 #include "Utils/ScreenshotCapture.h"
+#include "Stages/IStage.h"
 #include <memory>
 #include <fstream>
 #include <iomanip>
 #include <filesystem>
+#include <vector>
 
 class App {
 public:
@@ -26,7 +28,7 @@ public:
 private:
     void Update(double dt);
     void RunOptixThermal(InteropVertex* d_vertices);
-    float RunOptixPhotometry(InteropVertex* d_vertices);
+    void BuildStages();
     void RenderOpenGL();
     void OnSimulationComplete();
     void RecordData();
@@ -51,6 +53,6 @@ private:
     SpaceScene spaceScene;
     unsigned int frameCount = 0;
 
-    std::ofstream photometryLog;
+    std::vector<std::unique_ptr<IStage>> stages;
     bool simulationFinished = false;
 };

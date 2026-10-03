@@ -46,6 +46,7 @@ struct PhysicsSettings {
 };
 
 struct ThermalSettings {
+    bool enabled = true;
     float solarConstant = 1361.0f;
     float albedo = 0.04f;
     float emissivity = 0.95f;
@@ -62,7 +63,9 @@ struct ThermalSettings {
 };
 
 struct PhotometrySettings {
-    double absoluteMagnitudeH = 0.0;   
+    bool enabled = true;
+    int everyNFrames = 1;
+    std::vector<std::string> plots = { "tools/plot_lightcurve.py" };
     double phaseCoefficientBeta = 0.0;  
 };
 
@@ -82,9 +85,10 @@ struct ScreenshotSettings {
     int frameStride = 1;
 };
 
+
 struct PostprocessSettings {
     std::string python = "python";
-    std::vector<std::string> scripts = { "tools/plot_lightcurve.py" };
+    std::vector<std::string> scripts;  
 };
 
 struct AppSettings {
@@ -121,10 +125,11 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(CameraSettings, fov, heightMultiplier, distan
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(OrbitSettings, a, e, i, Omega, w, M0, epoch)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PhysicsSettings, timeScale, rotationPeriodHours, durationRotations,
         freezeOrbits, poleRA, poleDEC, startJulianDate, cometOrbit, earthOrbit)
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ThermalSettings, solarConstant, albedo, emissivity, activeFraction,
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ThermalSettings, enabled, solarConstant, albedo, emissivity, activeFraction,
         minTemp, maxTempForColor, indirectSamples, indirectSeed, indirectSolarScale, indirectIRScale,
         maxIndirectFractionOfSolarFlux, rayEpsilon)
-    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PhotometrySettings, absoluteMagnitudeH, phaseCoefficientBeta)
+    NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PhotometrySettings, enabled, everyNFrames, plots,
+        absoluteMagnitudeH, phaseCoefficientBeta)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DiagnosticsSettings, startupLogs, optixLogs, temperatureDebug,
         temperatureDebugIntervalFrames, cudaErrorChecks, syncAfterKernels)
     NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(ScreenshotSettings, enabled, outputDir, maxFrames, frameStride)
