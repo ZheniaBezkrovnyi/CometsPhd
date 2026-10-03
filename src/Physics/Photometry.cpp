@@ -13,7 +13,7 @@ namespace Photometry {
 
         double F_ratio = F_rel / (delta_m * delta_m * rh_AU * rh_AU);
 
-        double V_sun = -26.74;
+        double V_sun = PhysicsConsts::SUN_V_MAG;
         return V_sun - 2.5 * std::log10(F_ratio);
     }
 }

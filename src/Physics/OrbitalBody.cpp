@@ -4,7 +4,7 @@
 OrbitalBody::OrbitalBody(const KeplerianElements& elements) : orbParams(elements) {
     // Третій закон Кеплера: n = sqrt(G * M_sun / a^3). 
     // У системі одиниць сонячних мас, АО та днів, k = 0.01720209895 (стала Гаусса)
-    const double k = 0.01720209895;
+    const double k = PhysicsConsts::GAUSS_K;
     meanMotion = k / std::sqrt(orbParams.a * orbParams.a * orbParams.a);
 }
 
