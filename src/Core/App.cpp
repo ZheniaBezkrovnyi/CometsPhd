@@ -36,6 +36,13 @@ App::App(const fs::path& configPath, const fs::path& outputDirectory, const fs::
         config.ptxPath = (exeDir / config.ptxPath).string();
     }
 
+    if (outputDir.empty()) {
+        const std::string model = fs::path(config.modelPath).stem().string();
+        outputDir = fs::path(COMET_SOURCE_DIR) / "runs" / (Timestamp() + "_" + configPath.stem().string() + "_" + model);
+    }
+    std::cout << "[INFO] Output: " << outputDir.string() << "\n";
+    configFileName = configPath.filename();
+
     const fs::path shots = config.screenshotCapture.outputDir;
     screenshotDir = (shots.is_relative() ? outputDir / shots : shots).string();
 
@@ -71,7 +78,7 @@ bool App::Init() {
     cometMesh.UnmapFromCUDA();
 
     fs::create_directories(outputDir);
-    std::ofstream(outputDir / "config.json") << config.ToJson() << "\n";
+    std::ofstream(outputDir / configFileName) << config.ToJson() << "\n";
 
     BuildStages();
     for (auto& stage : stages) {
