@@ -21,15 +21,17 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} PREFIX "" FILES ${SOURCES})
 
 add_executable(CometSimulator ${SOURCES})
 
+set(COMET_LIBS_DIR "C:/Libraries/C++" CACHE PATH "Folder with glm, glfw and glew")
+
 target_include_directories(CometSimulator PRIVATE
-    "C:/Libraries/C++/glm"
-    "C:/Libraries/C++/glfw/include"
-    "C:/Libraries/C++/glew/include"
+    "${COMET_LIBS_DIR}/glm"
+    "${COMET_LIBS_DIR}/glfw/include"
+    "${COMET_LIBS_DIR}/glew/include"
 )
 
 target_link_directories(CometSimulator PRIVATE
-    "C:/Libraries/C++/glfw/lib-vc2026" 
-    "C:/Libraries/C++/glew/lib/Release/x64"
+    "${COMET_LIBS_DIR}/glfw/lib-vc2026"
+    "${COMET_LIBS_DIR}/glew/lib/Release/x64"
 )
 
 target_link_libraries(CometSimulator PRIVATE
@@ -38,9 +40,15 @@ target_link_libraries(CometSimulator PRIVATE
     OpenGL::GL
     CUDA::cudart 
 )
-target_compile_definitions(CometSimulator PRIVATE GLEW_STATIC)
+target_compile_definitions(CometSimulator PRIVATE GLEW_STATIC COMET_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 
-set(OPTIX_INCLUDE_DIR "C:/ProgramData/NVIDIA Corporation/OptiX SDK 9.1.0/include")
+set(OPTIX_ROOT "C:/ProgramData/NVIDIA Corporation/OptiX SDK 9.1.0" CACHE PATH "OptiX SDK root")
+set(OPTIX_INCLUDE_DIR "${OPTIX_ROOT}/include")
+if(NOT EXISTS "${OPTIX_INCLUDE_DIR}/optix.h")
+    message(FATAL_ERROR "optix.h not found in ${OPTIX_INCLUDE_DIR}. Set OPTIX_ROOT.")
+endif()
+
+file(GLOB_RECURSE PTX_HEADERS CONFIGURE_DEPENDS "src/*.h" "src/*.hpp" "src/*.cuh")
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/OptixKernels.ptx
@@ -50,7 +58,7 @@ add_custom_command(
             ${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/OptixKernels.cu
             -o ${CMAKE_CURRENT_BINARY_DIR}/OptixKernels.ptx
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/OptixKernels.cu
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/Shaders/OptixParams.h
+            ${PTX_HEADERS}
     COMMENT "Compiling OptiX PTX Shaders..."
 )
 
