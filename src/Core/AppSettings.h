@@ -163,7 +163,7 @@ inline json ReadConfigJson(const std::filesystem::path& path) {
     if (!j.contains("base")) {
         return j;
     }
-    json merged = ReadConfigJson(path.parent_path() / j["base"].get<std::string>());
+    json merged = ReadConfigJson(std::filesystem::path(COMET_SOURCE_DIR) / j["base"].get<std::string>());
     j.erase("base");
     merged.merge_patch(j);
     return merged;
