@@ -36,6 +36,7 @@ private:
 
     AppSettings config;
     std::filesystem::path outputDir;
+    std::filesystem::path configFileName;
     std::string screenshotDir;
     std::unique_ptr<GLContext> glContext;
     std::unique_ptr<OptixRenderer> optixRenderer;

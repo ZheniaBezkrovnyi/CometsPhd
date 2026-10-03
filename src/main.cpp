@@ -18,18 +18,6 @@ namespace fs = std::filesystem;
 
 static const fs::path kSourceDir = COMET_SOURCE_DIR;
 
-static std::string Timestamp() {
-    const std::time_t now = std::time(nullptr);
-    std::tm local{};
-#ifdef _WIN32
-    localtime_s(&local, &now);
-#else
-    localtime_r(&now, &local);
-#endif
-    std::ostringstream ss;
-    ss << std::put_time(&local, "%Y-%m-%d_%H%M%S");
-    return ss.str();
-}
 
 static fs::path DefaultConfig() {
     std::vector<fs::path> configs;
@@ -48,13 +36,10 @@ static fs::path DefaultConfig() {
 int main(int argc, char** argv) {
     try {
         const fs::path configPath = argc > 1 ? fs::path(argv[1]) : DefaultConfig();
-        const fs::path outputDir = argc > 2
-            ? fs::path(argv[2])
-            : kSourceDir / "runs" / (Timestamp() + "_" + configPath.stem().string());
+        const fs::path outputDir = argc > 2 ? fs::path(argv[2]) : fs::path();  
         const fs::path exeDir = fs::absolute(argv[0]).parent_path();
 
         std::cout << "[INFO] Config: " << configPath.string() << "\n";
-        std::cout << "[INFO] Output: " << outputDir.string() << "\n";
 
         cudaSetDevice(0);
         cudaFree(0);

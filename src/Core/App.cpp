@@ -7,8 +7,23 @@
 #include "Geometry/ModelLoader.h"
 #include <cstdlib>
 #include <stdexcept>
+#include <ctime>
+#include <sstream>
 
 namespace fs = std::filesystem;
+
+static std::string Timestamp() {
+    const std::time_t now = std::time(nullptr);
+    std::tm local{};
+#ifdef _WIN32
+    localtime_s(&local, &now);
+#else
+    localtime_r(&now, &local);
+#endif
+    std::ostringstream ss;
+    ss << std::put_time(&local, "%Y-%m-%d_%H%M%S");
+    return ss.str();
+}
 
 App::App(const fs::path& configPath, const fs::path& outputDirectory, const fs::path& exeDir)
     : outputDir(outputDirectory) {

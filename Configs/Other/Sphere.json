@@ -10,16 +10,13 @@
     "heightMultiplier": 0.5,
     "distanceMultiplier": 1.8,
     "farPlaneMultiplier": 10.0,
-    "clearColor": [
-      0.0,
-      0.0,
-      0.0,
-      1.0
-    ]
+    "clearColor": [ 0.0, 0.0, 0.0, 1.0 ]
   },
   "physics": {
     "timeScale": 100.0,
     "rotationPeriodHours": 5.27025528,
+    "durationRotations": 1.0,
+    "freezeOrbits": true,
     "poleRA": 11.29,
     "poleDEC": 16.81,
     "startJulianDate": 2458348.826355,
@@ -43,10 +40,14 @@
     }
   },
   "photometry": {
+    "enabled": true,
+    "everyNFrames": 10,
+    "plots": [ "checks/photometry/plot_lightcurve.py" ],
     "absoluteMagnitudeH": 10.4,
     "phaseCoefficientBeta": 0.04
   },
   "thermal": {
+    "enabled": true,
     "solarConstant": 1361.0,
     "albedo": 0.2,
     "emissivity": 0.95,
@@ -66,12 +67,17 @@
     "temperatureDebug": false,
     "temperatureDebugIntervalFrames": 300,
     "cudaErrorChecks": false,
-    "syncAfterKernels": false
+    "syncAfterKernels": false,
+    "timing": true
   },
   "screenshotCapture": {
-    "enabled": true,
+    "enabled": false,
     "outputDir": "capture_frames",
     "maxFrames": 300,
     "frameStride": 1
+  },
+  "postprocess": {
+    "python": "python",
+    "scripts": []
   }
 }
