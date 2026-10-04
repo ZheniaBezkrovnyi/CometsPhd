@@ -1,0 +1,83 @@
+{
+  "modelPath": "data/Bennu/Bennu_3366134.ply",
+  "ptxPath": "OptixKernels.ptx",
+  "window": {
+    "width": 1100,
+    "height": 1100
+  },
+  "camera": {
+    "fov": 60.0,
+    "heightMultiplier": 0.5,
+    "distanceMultiplier": 1.8,
+    "farPlaneMultiplier": 10.0,
+    "clearColor": [ 0.0, 0.0, 0.0, 1.0 ]
+  },
+  "physics": {
+    "timeScale": 3000000.0,
+    "rotationPeriodHours": 4.296057,
+    "durationRotations": 3.0,
+    "freezeOrbits": true,
+    "poleRA": 85.6588,
+    "poleDEC": -60.1698,
+    "startJulianDate": 2461703.5,
+    "cometOrbit": {
+      "a": 1.125999841394017,
+      "e": 0.2036966454186834,
+      "i": 6.032814270211719,
+      "Omega": 1.968873751992122,
+      "w": 66.40799693815983,
+      "M0": 274.0674659960083,
+      "epoch": 2461008.5
+    },
+    "earthOrbit": {
+      "a": 0.9999926792316651,
+      "e": 0.01666455261234486,
+      "i": 0.003433257724763637,
+      "Omega": 174.9587520340257,
+      "w": 288.1112956977394,
+      "M0": 324.7065293115908,
+      "epoch": 2461008.5
+    }
+  },
+  "photometry": {
+    "enabled": true,
+    "everyNFrames": 1,
+    "plots": [ "checks/photometry/plot_lightcurve.py" ],
+    "absoluteMagnitudeH": 20.2,
+    "phaseCoefficientBeta": 0.04
+  },
+  "thermal": {
+    "enabled": true,
+    "solarConstant": 1361.0,
+    "albedo": 0.04,
+    "emissivity": 0.95,
+    "activeFraction": 1.0,
+    "minTemp": 40.0,
+    "maxTempForColor": 230.0,
+    "indirectSamples": 256,
+    "indirectSeed": 1337,
+    "indirectSolarScale": 0.15,
+    "indirectIRScale": 0.05,
+    "maxIndirectFractionOfSolarFlux": 0.1,
+    "rayEpsilon": 0.01
+  },
+  "diagnostics": {
+    "startupLogs": false,
+    "optixLogs": false,
+    "temperatureDebug": false,
+    "temperatureDebugIntervalFrames": 300,
+    "cudaErrorChecks": false,
+    "syncAfterKernels": false,
+    "timing": true
+  },
+  "screenshotCapture": {
+    "enabled": false,
+    "outputDir": "capture_frames",
+    "maxFrames": 300,
+    "frameStride": 1
+  },
+  "postprocess": {
+    "python": "python",
+    "scripts": []
+  }
+}
