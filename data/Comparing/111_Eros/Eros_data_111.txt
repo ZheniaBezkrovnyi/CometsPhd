@@ -1,0 +1,5 @@
+https://damit.cuni.cz/projects/damit/light_curves/view/14600 - тут фотометрія яку брав для порівняння
+
+https://damit.cuni.cz/projects/damit/asteroid_models/view/3083 - тут орбіта\
+
+Внизу тієї ж сторінки, у списку Light curves, є номер 14600. Клік на нього відкриває сторінку кривої з усіма 146 рядками.

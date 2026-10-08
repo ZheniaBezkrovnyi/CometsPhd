@@ -1,0 +1,72 @@
+{
+  "modelPath": "C:/Users/Yevhen/Projects/Univ/CometsPhd/data/Eros/Eroc_1708.ply",
+  "ptxPath": "OptixKernels.ptx",
+  "window": {
+    "width": 1100,
+    "height": 1100
+  },
+  "camera": {
+    "fov": 60.0,
+    "heightMultiplier": 0.5,
+    "distanceMultiplier": 1.8,
+    "farPlaneMultiplier": 10.0,
+    "clearColor": [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  },
+  "physics": {
+    "timeScale": 300.0,
+    "rotationPeriodHours": 5.27025528,
+    "durationRotations": 1.91,
+    "freezeOrbits": false,
+    "poleRA": 17.0,
+    "poleDEC": 11.0,
+    "startJulianDate": 2442435.56343264,
+    "cometOrbit": {
+      "a": 1.4580879071245836,
+      "e": 0.222767708373198,
+      "i": 10.831904963655054,
+      "Omega": 304.55579318950106,
+      "w": 178.4195244847134,
+      "M0": 359.23653635608656,
+      "epoch": 2442435.837758
+    },
+    "earthOrbit": {
+      "a": 1.0000689024601275,
+      "e": 0.01676327797292933,
+      "i": 0.00418111365222121,
+      "Omega": 357.19213791072207,
+      "w": 105.93637377670393,
+      "M0": 19.26477531059257,
+      "epoch": 2442435.837758
+    }
+  },
+  "photometry": {
+    "enabled": true,
+    "everyNFrames": 6,
+    "plots": [
+      "checks/photometry/plot_lightcurve.py"
+    ],
+    "absoluteMagnitudeH": 10.4,
+    "phaseCoefficientBeta": 0.04
+  },
+  "thermal": {
+    "enabled": false,
+    "rayEpsilon": 0.01
+  },
+  "diagnostics": {
+    "timing": false
+  },
+  "screenshotCapture": {
+    "enabled": false
+  },
+  "postprocess": {
+    "python": "python",
+    "scripts": [
+      "checks/damit/compare_damit.py"
+    ]
+  }
+}
